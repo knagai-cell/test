@@ -91,9 +91,9 @@ async function compressImage(file, maxPx = 1024, quality = 0.85) {
 
 // ─── Kimono presets ──────────────────────────────────────────────────────────
 const PRESETS = [
-  { id: 'red',   label: '赤振袖', src: '/public/kimonos/red.jpg',   color: 'from-red-400 to-rose-600',   ring: 'ring-red-400',   bg: 'bg-red-50',   border: 'border-red-300'   },
-  { id: 'blue',  label: '青振袖', src: '/public/kimonos/blue.jpg',  color: 'from-blue-400 to-indigo-600', ring: 'ring-blue-400',  bg: 'bg-blue-50',  border: 'border-blue-300'  },
-  { id: 'black', label: '黒振袖', src: '/public/kimonos/black.jpg', color: 'from-gray-700 to-gray-900',  ring: 'ring-gray-500',  bg: 'bg-gray-50',  border: 'border-gray-400'  },
+  { id: 'red',   label: '赤振袖', src: '/kimonos/red.jpg',   color: 'from-red-400 to-rose-600',   ring: 'ring-red-400',   bg: 'bg-red-50',   border: 'border-red-300'   },
+  { id: 'blue',  label: '青振袖', src: '/kimonos/blue.jpg',  color: 'from-blue-400 to-indigo-600', ring: 'ring-blue-400',  bg: 'bg-blue-50',  border: 'border-blue-300'  },
+  { id: 'black', label: '黒振袖', src: '/kimonos/black.jpg', color: 'from-gray-700 to-gray-900',  ring: 'ring-gray-500',  bg: 'bg-gray-50',  border: 'border-gray-400'  },
 ];
 
 async function compressImageFromUrl(url, maxPx = 768, quality = 0.85) {
@@ -369,22 +369,43 @@ function App() {
     if (!person || !kimono) return;
     setLoading(true); setError(null); setResultUrl(null);
     try {
-      const res = await fetch('/api/tryon', {
+      // 1. ジョブを送信 → requestId を受け取る
+      const submitRes = await fetch('/api/tryon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          personBase64: person.base64,
+          personBase64:   person.base64,
           personMediaType: person.mediaType,
-          kimonoBase64: kimono.base64,
+          kimonoBase64:   kimono.base64,
           kimonoMediaType: kimono.mediaType,
         }),
       });
-      const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      setResultUrl(data.imageUrl);
-      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      const submitData = await submitRes.json();
+      if (submitData.error) { setError(submitData.error); return; }
+
+      const { requestId } = submitData;
+
+      // 2. 3秒ごとにステータスをポーリング（最大2分）
+      const deadline = Date.now() + 120_000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 3000));
+        const statusRes = await fetch(`/api/tryon?id=${requestId}`);
+        const statusData = await statusRes.json();
+
+        if (statusData.status === 'COMPLETED') {
+          setResultUrl(statusData.imageUrl);
+          setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+          return;
+        }
+        if (statusData.status === 'FAILED') {
+          setError('処理に失敗しました: ' + (statusData.error || ''));
+          return;
+        }
+        // IN_QUEUE / IN_PROGRESS → 次のポーリングへ
+      }
+      setError('タイムアウト: 2分以内に処理が完了しませんでした');
     } catch (e) {
-      setError('サーバーへの接続に失敗しました。node server.js が起動しているか確認してください。');
+      setError('エラー: ' + e.message);
     } finally {
       setLoading(false);
     }

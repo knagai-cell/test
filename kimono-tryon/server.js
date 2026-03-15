@@ -8,7 +8,6 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const FAL_KEY = process.env.FAL_KEY || '';
 
 // ─── HTTPS helper ────────────────────────────────────────────────────────────
-// Returns Promise<{ statusCode, body: string }>
 function makeHttpsRequest(options, body) {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
@@ -25,91 +24,6 @@ function makeHttpsRequest(options, body) {
   });
 }
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-// ─── fal.ai Virtual Try-On (CatVTON) ─────────────────────────────────────────
-async function runVirtualTryOn(personBase64, personMediaType, kimonoBase64, kimonoMediaType) {
-  if (!FAL_KEY) throw new Error('FAL_KEY が設定されていません。export FAL_KEY=your_key で設定してください。');
-
-  const input = {
-    human_image_url: `data:${personMediaType};base64,${personBase64}`,
-    garment_image_url: `data:${kimonoMediaType};base64,${kimonoBase64}`,
-    cloth_type: 'overall',
-    num_inference_steps: 30,
-    guidance_scale: 2.5,
-    seed: -1
-  };
-
-  // 1. Submit job to fal.ai queue
-  const submitBody = JSON.stringify(input);
-  const submitRes = await makeHttpsRequest({
-    hostname: 'queue.fal.run',
-    path: '/fal-ai/cat-vton',
-    method: 'POST',
-    headers: {
-      'Authorization': `Key ${FAL_KEY}`,
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(submitBody)
-    },
-    timeout: 30000
-  }, submitBody);
-
-  if (submitRes.statusCode !== 200 && submitRes.statusCode !== 201) {
-    let errDetail = submitRes.body;
-    try { errDetail = JSON.parse(submitRes.body).detail || errDetail; } catch (_) {}
-    throw new Error(`fal.ai 送信エラー (${submitRes.statusCode}): ${errDetail}`);
-  }
-
-  const submitJson = JSON.parse(submitRes.body);
-  const requestId = submitJson.request_id;
-  console.log(`[fal.ai] ジョブ送信完了: ${requestId}`);
-
-  // 2. Poll status until COMPLETED or FAILED
-  const deadline = Date.now() + 120000; // 2 minutes
-  while (Date.now() < deadline) {
-    await sleep(3000);
-
-    const statusRes = await makeHttpsRequest({
-      hostname: 'queue.fal.run',
-      path: `/fal-ai/cat-vton/requests/${requestId}/status`,
-      method: 'GET',
-      headers: { 'Authorization': `Key ${FAL_KEY}` },
-      timeout: 10000
-    });
-
-    if (statusRes.statusCode !== 200) continue;
-
-    const status = JSON.parse(statusRes.body);
-    console.log(`[fal.ai] ステータス: ${status.status}`);
-
-    if (status.status === 'COMPLETED') {
-      // 3. Fetch final result
-      const resultRes = await makeHttpsRequest({
-        hostname: 'queue.fal.run',
-        path: `/fal-ai/cat-vton/requests/${requestId}`,
-        method: 'GET',
-        headers: { 'Authorization': `Key ${FAL_KEY}` },
-        timeout: 10000
-      });
-
-      const result = JSON.parse(resultRes.body);
-      if (!result.image || !result.image.url) {
-        throw new Error('fal.ai から画像URLが返されませんでした');
-      }
-      console.log(`[fal.ai] 生成完了: ${result.image.url}`);
-      return { imageUrl: result.image.url, width: result.image.width, height: result.image.height };
-    }
-
-    if (status.status === 'FAILED') {
-      const errMsg = status.error?.message || status.error || '処理に失敗しました';
-      throw new Error(`fal.ai 処理失敗: ${errMsg}`);
-    }
-    // IN_QUEUE or IN_PROGRESS → continue polling
-  }
-
-  throw new Error('タイムアウト: 2分以内に処理が完了しませんでした');
-}
-
 // ─── Claude API analysis (kept for reference) ────────────────────────────────
 async function runClaudeAnalysis(imageBase64, imageMediaType, kimonoName, kimonoDescription, kimonoColor) {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY が設定されていません');
@@ -123,10 +37,7 @@ async function runClaudeAnalysis(imageBase64, imageMediaType, kimonoName, kimono
         { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } },
         {
           type: 'text',
-          text: `この写真の人物が「${kimonoName}」（${kimonoDescription}）を着用したときの様子を描写してください。
-着物の特徴: 名前=${kimonoName}, 説明=${kimonoDescription}, 色=${kimonoColor}
-以下のJSONのみで回答してください:
-{"overall_impression":"全体印象","kimono_fit":"着こなし","color_harmony":"色調調和","style_advice":"アドバイス","scene_suggestion":"おすすめシーン"}`
+          text: `この写真の人物が「${kimonoName}」（${kimonoDescription}）を着用したときの様子を描写してください。\n着物の特徴: 名前=${kimonoName}, 説明=${kimonoDescription}, 色=${kimonoColor}\n以下のJSONのみで回答してください:\n{"overall_impression":"全体印象","kimono_fit":"着こなし","color_harmony":"色調調和","style_advice":"アドバイス","scene_suggestion":"おすすめシーン"}`
         }
       ]
     }]
@@ -175,12 +86,11 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(data));
   }
 
-  // Serve static files from public/
-  if (req.method === 'GET' && req.url.startsWith('/public/')) {
-    const safePath = path.normalize(req.url.replace(/^\/public\//, ''));
-    // Prevent path traversal
+  // Serve kimono preset images from public/kimonos/
+  if (req.method === 'GET' && req.url.startsWith('/kimonos/')) {
+    const safePath = path.normalize(req.url.replace(/^\/kimonos\//, ''));
     if (safePath.startsWith('..')) { res.writeHead(403); res.end('Forbidden'); return; }
-    const filePath = path.join(__dirname, 'public', safePath);
+    const filePath = path.join(__dirname, 'public', 'kimonos', safePath);
     fs.readFile(filePath, (err, data) => {
       if (err) { res.writeHead(404); res.end('Not Found'); return; }
       const ext = path.extname(filePath).toLowerCase();
@@ -201,22 +111,90 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── POST /api/tryon : fal.ai CatVTON virtual try-on ──────────────────────
+  // ── POST /api/tryon : fal.ai キューにジョブを送信 ─────────────────────────
   if (req.method === 'POST' && req.url === '/api/tryon') {
+    if (!FAL_KEY) return json(500, { error: 'FAL_KEY が設定されていません。export FAL_KEY=your_key で設定してください。' });
+
     try {
       const body = await readBody(req);
       const { personBase64, personMediaType, kimonoBase64, kimonoMediaType } = JSON.parse(body);
 
       if (!personBase64 || !kimonoBase64) return json(400, { error: '人物写真と着物画像の両方が必要です' });
 
-      const personKB = Math.round(personBase64.length * 0.75 / 1024);
-      const kimonoKB = Math.round(kimonoBase64.length * 0.75 / 1024);
-      console.log(`[tryon] 人物: ${personKB}KB, 着物: ${kimonoKB}KB`);
+      const submitBody = JSON.stringify({
+        human_image_url: `data:${personMediaType};base64,${personBase64}`,
+        garment_image_url: `data:${kimonoMediaType};base64,${kimonoBase64}`,
+        cloth_type: 'overall',
+        num_inference_steps: 30,
+        guidance_scale: 2.5,
+        seed: -1
+      });
 
-      const result = await runVirtualTryOn(personBase64, personMediaType, kimonoBase64, kimonoMediaType);
-      json(200, result);
+      const submitRes = await makeHttpsRequest({
+        hostname: 'queue.fal.run',
+        path: '/fal-ai/cat-vton',
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${FAL_KEY}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(submitBody)
+        },
+        timeout: 30000
+      }, submitBody);
+
+      if (submitRes.statusCode !== 200 && submitRes.statusCode !== 201) {
+        let detail = submitRes.body;
+        try { detail = JSON.parse(submitRes.body).detail || detail; } catch (_) {}
+        return json(500, { error: `fal.ai 送信エラー (${submitRes.statusCode}): ${detail}` });
+      }
+
+      const { request_id } = JSON.parse(submitRes.body);
+      console.log(`[tryon] ジョブ送信完了: ${request_id}`);
+      json(200, { requestId: request_id });
     } catch (e) {
       console.error('[tryon] エラー:', e.message);
+      json(500, { error: e.message });
+    }
+    return;
+  }
+
+  // ── GET /api/tryon?id=... : ジョブのステータスを確認 ──────────────────────
+  if (req.method === 'GET' && req.url.startsWith('/api/tryon')) {
+    if (!FAL_KEY) return json(500, { error: 'FAL_KEY が設定されていません。' });
+
+    const id = new URL(req.url, `http://localhost:${PORT}`).searchParams.get('id');
+    if (!id) return json(400, { error: 'id パラメータが必要です' });
+
+    try {
+      const statusRes = await makeHttpsRequest({
+        hostname: 'queue.fal.run',
+        path: `/fal-ai/cat-vton/requests/${id}/status`,
+        method: 'GET',
+        headers: { 'Authorization': `Key ${FAL_KEY}` },
+        timeout: 10000
+      });
+
+      const status = JSON.parse(statusRes.body);
+
+      if (status.status === 'COMPLETED') {
+        const resultRes = await makeHttpsRequest({
+          hostname: 'queue.fal.run',
+          path: `/fal-ai/cat-vton/requests/${id}`,
+          method: 'GET',
+          headers: { 'Authorization': `Key ${FAL_KEY}` },
+          timeout: 10000
+        });
+        const result = JSON.parse(resultRes.body);
+        return json(200, { status: 'COMPLETED', imageUrl: result.image?.url });
+      }
+
+      if (status.status === 'FAILED') {
+        return json(200, { status: 'FAILED', error: status.error?.message || '処理に失敗しました' });
+      }
+
+      json(200, { status: status.status });
+    } catch (e) {
+      console.error('[tryon status] エラー:', e.message);
       json(500, { error: e.message });
     }
     return;
