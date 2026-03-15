@@ -10,13 +10,34 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;600&display=swap');
-    body { font-family: 'Noto Sans JP', sans-serif; }
+    body { font-family: 'Noto Sans JP', sans-serif; background: #faf5ff; }
     .font-serif-jp { font-family: 'Noto Serif JP', serif; }
-    .kimono-card { transition: all 0.2s ease; }
-    .kimono-card:hover { transform: translateY(-2px); }
-    .kimono-card.selected { transform: translateY(-2px); }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp 0.5s ease forwards; }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+    .processing-dot::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-ring 1.4s ease-out infinite;
+    }
+
+    .upload-zone { transition: all 0.2s ease; }
+    .upload-zone.drag-over { background: #f3e8ff; border-color: #9333ea; transform: scale(1.01); }
+    .upload-zone:hover { border-color: #a855f7; background: #fdf4ff; }
+
     @keyframes shimmer {
-      0% { background-position: -200% 0; }
+      0%   { background-position: -200% 0; }
       100% { background-position: 200% 0; }
     }
     .shimmer {
@@ -24,313 +45,331 @@
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
+
+    .result-img {
+      animation: fadeInUp 0.6s ease;
+      transition: transform 0.2s;
     }
-    .fade-in { animation: fadeIn 0.5s ease forwards; }
-    .drop-zone { transition: all 0.2s ease; }
-    .drop-zone.dragging { background-color: #f3e8ff; border-color: #9333ea; }
+    .result-img:hover { transform: scale(1.01); }
   </style>
 </head>
-<body class="bg-gradient-to-b from-purple-50 to-pink-50 min-h-screen">
-
+<body>
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useRef, useCallback } = React;
+const { useState, useRef, useCallback, useEffect } = React;
 
-const KIMONOS = [
-  {
-    id: 'furisode',
-    name: '振袖',
-    emoji: '🌸',
-    description: '華やかな長袖の正礼装',
-    color: '#e11d48',
-    colorName: '深紅・金',
-    pattern: '牡丹・鶴',
-    occasion: '成人式・結婚式',
-    gradient: 'from-red-400 to-pink-600',
-    bgLight: 'bg-red-50',
-    border: 'border-red-400',
-    ring: 'ring-red-400',
-    badge: 'bg-red-100 text-red-700',
-  },
-  {
-    id: 'houmongi',
-    name: '訪問着',
-    emoji: '🌊',
-    description: '上品な絵羽模様の準礼装',
-    color: '#1d4ed8',
-    colorName: '藍・白',
-    pattern: '波・松竹梅',
-    occasion: '茶会・パーティ',
-    gradient: 'from-blue-500 to-indigo-700',
-    bgLight: 'bg-blue-50',
-    border: 'border-blue-400',
-    ring: 'ring-blue-400',
-    badge: 'bg-blue-100 text-blue-700',
-  },
-  {
-    id: 'yukata',
-    name: '浴衣',
-    emoji: '🎆',
-    description: '夏の爽やかな木綿着物',
-    color: '#059669',
-    colorName: '白・紺',
-    pattern: '朝顔・花火',
-    occasion: '夏祭り・花火大会',
-    gradient: 'from-teal-400 to-emerald-600',
-    bgLight: 'bg-teal-50',
-    border: 'border-teal-400',
-    ring: 'ring-teal-400',
-    badge: 'bg-teal-100 text-teal-700',
-  },
-];
-
-function KimonoCard({ kimono, selected, onSelect }) {
-  return (
-    <button
-      onClick={() => onSelect(kimono)}
-      className={`kimono-card relative w-full rounded-2xl p-4 border-2 text-left transition-all
-        ${selected
-          ? `${kimono.border} ${kimono.bgLight} ring-2 ${kimono.ring} ring-offset-1 shadow-lg`
-          : 'border-gray-200 bg-white hover:border-gray-300 shadow-sm hover:shadow-md'
-        }`}
-    >
-      {selected && (
-        <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-current flex items-center justify-center"
-          style={{ backgroundColor: kimono.color }}>
-          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-          </svg>
-        </span>
-      )}
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${kimono.gradient} flex items-center justify-center text-2xl mb-3 shadow-sm`}>
-        {kimono.emoji}
-      </div>
-      <div className="font-serif-jp font-bold text-lg text-gray-900">{kimono.name}</div>
-      <div className="text-xs text-gray-500 mt-0.5 mb-2">{kimono.description}</div>
-      <div className="flex flex-wrap gap-1">
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${kimono.badge}`}>
-          {kimono.colorName}
-        </span>
-        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600">
-          {kimono.occasion}
-        </span>
-      </div>
-    </button>
-  );
+// ─── Image resize/compress via Canvas ──────────────────────────────────────
+async function compressImage(file, maxPx = 1024, quality = 0.85) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        if (width >= height) { height = Math.round(height * maxPx / width); width = maxPx; }
+        else                 { width = Math.round(width * maxPx / height);  height = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = e => resolve({
+          base64: e.target.result.split(',')[1],
+          mediaType: 'image/jpeg',
+          previewUrl: e.target.result,
+          sizePx: `${width}×${height}`
+        });
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', quality);
+    };
+    img.src = objectUrl;
+  });
 }
 
-function ResultCard({ result }) {
-  if (!result) return null;
-  const items = [
-    { label: '全体印象', key: 'overall_impression', icon: '✨' },
-    { label: '着こなし', key: 'kimono_fit', icon: '👘' },
-    { label: '色調バランス', key: 'color_harmony', icon: '🎨' },
-    { label: 'スタイリング', key: 'style_advice', icon: '💡' },
-    { label: 'おすすめシーン', key: 'scene_suggestion', icon: '📍' },
-  ];
+// ─── Upload Zone Component ───────────────────────────────────────────────────
+function UploadZone({ label, icon, preview, onFile, hint }) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef(null);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault(); setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) onFile(f);
+  }, [onFile]);
+
   return (
-    <div className="fade-in space-y-3">
-      {items.map(({ label, key, icon }) =>
-        result[key] ? (
-          <div key={key} className="bg-white rounded-xl p-4 shadow-sm border border-purple-100">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-base">{icon}</span>
-              <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">{label}</span>
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed">{result[key]}</p>
+    <div
+      className={`upload-zone border-2 border-dashed rounded-2xl overflow-hidden cursor-pointer
+        ${dragging ? 'drag-over' : 'border-purple-200 bg-white'}`}
+      onDragOver={e => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+    >
+      {preview ? (
+        <div className="relative">
+          <img src={preview} alt={label} className="w-full h-52 object-cover" />
+          <div className="absolute inset-0 bg-black/0 hover:bg-black/25 flex items-center justify-center opacity-0 hover:opacity-100 transition-all">
+            <span className="bg-white/90 text-gray-800 text-sm font-medium px-4 py-2 rounded-full shadow">
+              変更する
+            </span>
           </div>
-        ) : null
+          <span className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow">
+            ✓ 読み込み済
+          </span>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-3 py-8 px-4">
+          <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center text-2xl">
+            {icon}
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-gray-700">{label}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{hint}</p>
+          </div>
+        </div>
       )}
+      <input ref={inputRef} type="file" accept="image/*" capture="user"
+        className="hidden" onChange={e => { if (e.target.files[0]) onFile(e.target.files[0]); }} />
     </div>
   );
 }
 
-function App() {
-  const [photo, setPhoto] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [selectedKimono, setSelectedKimono] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [dragging, setDragging] = useState(false);
-  const fileInputRef = useRef(null);
-  const resultRef = useRef(null);
+// ─── Progress Indicator ──────────────────────────────────────────────────────
+function ProcessingState({ elapsed }) {
+  const steps = [
+    { label: '画像をアップロード中', done: elapsed > 5 },
+    { label: 'fal.ai にジョブを送信中', done: elapsed > 10 },
+    { label: 'CatVTON で試着画像を生成中', done: elapsed > 90 },
+    { label: '結果を取得中', done: false },
+  ];
+  const activeIdx = steps.findLastIndex(s => s.done);
+  const currentIdx = Math.min(activeIdx + 1, steps.length - 1);
 
-  const handleFile = useCallback((file) => {
-    if (!file || !file.type.startsWith('image/')) {
-      setError('画像ファイルを選択してください');
-      return;
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-purple-100">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="relative w-6 h-6 text-purple-500 processing-dot">
+          <div className="w-6 h-6 rounded-full bg-purple-500" />
+        </div>
+        <div>
+          <p className="font-semibold text-gray-800 text-sm">AI試着画像を生成中…</p>
+          <p className="text-xs text-gray-400">通常 30〜60 秒かかります（{elapsed}秒経過）</p>
+        </div>
+      </div>
+      <div className="space-y-2.5">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-center gap-2.5">
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0
+              ${step.done ? 'bg-green-500 text-white'
+                : i === currentIdx ? 'bg-purple-500 text-white animate-pulse'
+                : 'bg-gray-100 text-gray-300'}`}>
+              {step.done ? '✓' : i + 1}
+            </div>
+            <span className={`text-sm ${step.done ? 'text-gray-400 line-through' : i === currentIdx ? 'text-gray-800 font-medium' : 'text-gray-300'}`}>
+              {step.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Result Image ────────────────────────────────────────────────────────────
+function ResultImage({ imageUrl, onReset }) {
+  return (
+    <div className="fade-in">
+      <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-purple-100">
+        <div className="relative">
+          <img
+            src={imageUrl}
+            alt="AI生成着物試着結果"
+            className="result-img w-full"
+            onClick={() => window.open(imageUrl, '_blank')}
+          />
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            <a
+              href={imageUrl}
+              download="kimono-tryon.jpg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-md hover:bg-white transition-all flex items-center gap-1"
+              onClick={e => e.stopPropagation()}
+            >
+              💾 保存
+            </a>
+            <button
+              onClick={() => window.open(imageUrl, '_blank')}
+              className="bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full shadow-md hover:bg-white transition-all"
+            >
+              🔍 拡大
+            </button>
+          </div>
+        </div>
+        <div className="px-4 py-3 flex items-center justify-between bg-purple-50/60">
+          <div className="flex items-center gap-2">
+            <span className="text-green-500 text-sm">✨</span>
+            <span className="text-sm text-gray-600 font-medium">Generated by fal.ai CatVTON</span>
+          </div>
+          <button
+            onClick={onReset}
+            className="text-xs text-purple-600 font-semibold px-3 py-1.5 rounded-full bg-white border border-purple-200 hover:bg-purple-50 transition-all"
+          >
+            🔄 もう一度試す
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ────────────────────────────────────────────────────────────────
+function App() {
+  const [person, setPerson] = useState(null);   // { base64, mediaType, previewUrl }
+  const [kimono, setKimono] = useState(null);   // { base64, mediaType, previewUrl }
+  const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [resultUrl, setResultUrl] = useState(null);
+  const [error, setError] = useState(null);
+  const resultRef = useRef(null);
+  const timerRef = useRef(null);
+
+  // Start elapsed timer while loading
+  useEffect(() => {
+    if (loading) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    } else {
+      clearInterval(timerRef.current);
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('5MB以下の画像を選択してください');
-      return;
-    }
-    setError(null);
-    setResult(null);
-    setPhoto(file);
-    const reader = new FileReader();
-    reader.onload = (e) => setPhotoPreview(e.target.result);
-    reader.readAsDataURL(file);
+    return () => clearInterval(timerRef.current);
+  }, [loading]);
+
+  const handlePersonFile = useCallback(async (file) => {
+    setError(null); setResultUrl(null);
+    const data = await compressImage(file, 1024);
+    setPerson(data);
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files[0];
-    handleFile(file);
-  }, [handleFile]);
+  const handleKimonoFile = useCallback(async (file) => {
+    setError(null); setResultUrl(null);
+    const data = await compressImage(file, 768);
+    setKimono(data);
+  }, []);
 
   const handleGenerate = async () => {
-    if (!photo || !selectedKimono) return;
-    setLoading(true);
-    setError(null);
-    setResult(null);
-
+    if (!person || !kimono) return;
+    setLoading(true); setError(null); setResultUrl(null);
     try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const dataUrl = e.target.result;
-          resolve(dataUrl.split(',')[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(photo);
-      });
-
-      const res = await fetch('/api/generate', {
+      const res = await fetch('/api/tryon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageBase64: base64,
-          imageMediaType: photo.type,
-          kimonoName: selectedKimono.name,
-          kimonoDescription: selectedKimono.description,
-          kimonoColor: selectedKimono.colorName,
+          personBase64: person.base64,
+          personMediaType: person.mediaType,
+          kimonoBase64: kimono.base64,
+          kimonoMediaType: kimono.mediaType,
         }),
       });
-
       const data = await res.json();
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setResult(data.result);
-        setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-      }
+      if (data.error) { setError(data.error); return; }
+      setResultUrl(data.imageUrl);
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e) {
-      setError('サーバーへの接続に失敗しました。サーバーが起動しているか確認してください。');
+      setError('サーバーへの接続に失敗しました。node server.js が起動しているか確認してください。');
     } finally {
       setLoading(false);
     }
   };
 
-  const canGenerate = photo && selectedKimono && !loading;
+  const handleReset = () => {
+    setResultUrl(null); setError(null); setElapsed(0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const canGenerate = person && kimono && !loading;
 
   return (
-    <div className="min-h-screen pb-12">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-purple-100 sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
-          <span className="text-2xl">👘</span>
+    <div className="min-h-screen pb-16">
+
+      {/* ── Header ── */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-purple-100 sticky top-0 z-20">
+        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg shadow-sm">
+            👘
+          </div>
           <div>
             <h1 className="font-serif-jp font-bold text-gray-900 text-base leading-tight">AI着物試着</h1>
-            <p className="text-xs text-gray-400">Powered by Claude claude-opus-4-6</p>
+            <p className="text-xs text-gray-400">fal.ai CatVTON × Virtual Try-On</p>
           </div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
+      <main className="max-w-md mx-auto px-4 pt-6 space-y-5">
 
-        {/* Step 1: Photo Upload */}
+        {/* ── Step 1: Person photo ── */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center">1</span>
-            <h2 className="font-semibold text-gray-800">写真をアップロード</h2>
-          </div>
-
-          <div
-            className={`drop-zone border-2 border-dashed rounded-2xl overflow-hidden ${dragging ? 'dragging' : 'border-purple-200'}`}
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-          >
-            {photoPreview ? (
-              <div className="relative">
-                <img src={photoPreview} alt="アップロード済み" className="w-full h-56 object-cover" />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-white/90 text-gray-800 text-sm font-medium px-4 py-2 rounded-full shadow"
-                  >
-                    写真を変更
-                  </button>
-                </div>
-                <div className="absolute bottom-2 right-2">
-                  <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                    ✓ アップロード済み
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full p-8 flex flex-col items-center gap-3 hover:bg-purple-50/50 transition-colors"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-gray-700">タップして写真を選択</p>
-                  <p className="text-xs text-gray-400 mt-0.5">またはドラッグ＆ドロップ · JPG, PNG · 5MB以下</p>
-                </div>
-              </button>
-            )}
-          </div>
-          <input ref={fileInputRef} type="file" accept="image/*" capture="user" className="hidden"
-            onChange={(e) => handleFile(e.target.files[0])} />
-        </section>
-
-        {/* Step 2: Kimono Selection */}
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-            <h2 className="font-semibold text-gray-800">着物を選択</h2>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {KIMONOS.map(kimono => (
-              <KimonoCard
-                key={kimono.id}
-                kimono={kimono}
-                selected={selectedKimono?.id === kimono.id}
-                onSelect={setSelectedKimono}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Generate Button */}
-        <section>
-          {error && (
-            <div className="mb-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-2">
-              <svg className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-              </svg>
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
+          <StepHeader num={1} title="あなたの写真" done={!!person} />
+          <UploadZone
+            label="人物写真をアップロード"
+            icon="📷"
+            hint="全身 or 上半身・JPG / PNG · 5MB以下"
+            preview={person?.previewUrl}
+            onFile={handlePersonFile}
+          />
+          {person && (
+            <p className="text-xs text-gray-400 mt-1.5 ml-1">
+              読み込み完了 ({person.sizePx})
+            </p>
           )}
+        </section>
 
+        {/* ── Step 2: Kimono image ── */}
+        <section>
+          <StepHeader num={2} title="着物の画像" done={!!kimono} />
+          <UploadZone
+            label="着物 / 衣装画像をアップロード"
+            icon="👘"
+            hint="着物・浴衣・和服など · JPG / PNG · 5MB以下"
+            preview={kimono?.previewUrl}
+            onFile={handleKimonoFile}
+          />
+          {kimono && (
+            <p className="text-xs text-gray-400 mt-1.5 ml-1">
+              読み込み完了 ({kimono.sizePx})
+            </p>
+          )}
+        </section>
+
+        {/* ── Divider with arrow ── */}
+        {person && kimono && !loading && !resultUrl && (
+          <div className="flex flex-col items-center gap-1 py-1 fade-in">
+            <div className="w-0.5 h-6 bg-purple-200 rounded" />
+            <div className="text-purple-400 text-lg">▼</div>
+          </div>
+        )}
+
+        {/* ── Error ── */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex gap-2 fade-in">
+            <span className="text-red-400 mt-0.5">⚠️</span>
+            <p className="text-sm text-red-600 leading-relaxed">{error}</p>
+          </div>
+        )}
+
+        {/* ── Generate Button ── */}
+        {!resultUrl && (
           <button
             onClick={handleGenerate}
             disabled={!canGenerate}
-            className={`w-full py-4 rounded-2xl font-bold text-base transition-all duration-200 shadow-lg
+            className={`w-full py-4 rounded-2xl font-bold text-base transition-all duration-200
               ${canGenerate
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 active:scale-95 shadow-purple-200'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-200 hover:shadow-purple-300 active:scale-95'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
           >
             {loading ? (
@@ -339,66 +378,61 @@ function App() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                 </svg>
-                AI分析中...
+                処理中 ({elapsed}秒)
               </span>
             ) : (
               <span className="flex items-center justify-center gap-2">
-                <span>👘</span>
-                {!photo ? '写真をアップロードしてください' : !selectedKimono ? '着物を選んでください' : 'AI試着を生成'}
+                <span>✨</span>
+                {!person && !kimono ? '写真と着物を選んでください'
+                  : !person ? '人物写真を選んでください'
+                  : !kimono ? '着物画像を選んでください'
+                  : 'AI試着を生成する'}
               </span>
             )}
           </button>
+        )}
 
-          {!photo || !selectedKimono ? (
-            <p className="text-center text-xs text-gray-400 mt-2">
-              {!photo && !selectedKimono ? '写真と着物の両方を選択してください'
-                : !photo ? '写真をアップロードしてください'
-                : '着物を選んでください'}
-            </p>
-          ) : null}
-        </section>
+        {/* ── Processing state ── */}
+        {loading && (
+          <section>
+            <ProcessingState elapsed={elapsed} />
+          </section>
+        )}
 
-        {/* Step 3: Result */}
-        {(result || loading) && (
+        {/* ── Result ── */}
+        {resultUrl && (
           <section ref={resultRef}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center">3</span>
-              <h2 className="font-semibold text-gray-800">AI試着レポート</h2>
-              {selectedKimono && (
-                <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${selectedKimono.badge}`}>
-                  {selectedKimono.emoji} {selectedKimono.name}
-                </span>
-              )}
-            </div>
-
-            {loading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-purple-100">
-                    <div className="shimmer h-3 w-20 rounded mb-2" />
-                    <div className="shimmer h-4 w-full rounded mb-1" />
-                    <div className="shimmer h-4 w-4/5 rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <ResultCard result={result} />
-            )}
+            <StepHeader num={3} title="生成結果" done />
+            <ResultImage imageUrl={resultUrl} onReset={handleReset} />
           </section>
         )}
 
       </main>
 
-      {/* Footer */}
-      <footer className="max-w-md mx-auto px-4 mt-8 text-center">
-        <p className="text-xs text-gray-400">Claude Vision APIによるAI分析 · 画像はサーバーに保存されません</p>
+      {/* ── Footer ── */}
+      <footer className="max-w-md mx-auto px-4 mt-10 text-center">
+        <p className="text-xs text-gray-400">
+          fal.ai CatVTON による仮想試着 · 画像はサーバーに保存されません
+        </p>
       </footer>
     </div>
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+// Step header sub-component
+function StepHeader({ num, title, done }) {
+  return (
+    <div className="flex items-center gap-2 mb-2.5">
+      <span className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-colors
+        ${done ? 'bg-green-500 text-white' : 'bg-purple-600 text-white'}`}>
+        {done ? '✓' : num}
+      </span>
+      <h2 className="font-semibold text-gray-800 text-sm">{title}</h2>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>

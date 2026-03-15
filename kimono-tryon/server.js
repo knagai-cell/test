@@ -1,152 +1,230 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const FAL_KEY = process.env.FAL_KEY || '';
 
+// ─── HTTPS helper ────────────────────────────────────────────────────────────
+// Returns Promise<{ statusCode, body: string }>
+function makeHttpsRequest(options, body) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        resolve({ statusCode: res.statusCode, body: Buffer.concat(chunks).toString() });
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ─── fal.ai Virtual Try-On (CatVTON) ─────────────────────────────────────────
+async function runVirtualTryOn(personBase64, personMediaType, kimonoBase64, kimonoMediaType) {
+  if (!FAL_KEY) throw new Error('FAL_KEY が設定されていません。export FAL_KEY=your_key で設定してください。');
+
+  const input = {
+    human_image_url: `data:${personMediaType};base64,${personBase64}`,
+    garment_image_url: `data:${kimonoMediaType};base64,${kimonoBase64}`,
+    cloth_type: 'overall',
+    num_inference_steps: 30,
+    guidance_scale: 2.5,
+    seed: -1
+  };
+
+  // 1. Submit job to fal.ai queue
+  const submitBody = JSON.stringify(input);
+  const submitRes = await makeHttpsRequest({
+    hostname: 'queue.fal.run',
+    path: '/fal-ai/cat-vton',
+    method: 'POST',
+    headers: {
+      'Authorization': `Key ${FAL_KEY}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(submitBody)
+    },
+    timeout: 30000
+  }, submitBody);
+
+  if (submitRes.statusCode !== 200 && submitRes.statusCode !== 201) {
+    let errDetail = submitRes.body;
+    try { errDetail = JSON.parse(submitRes.body).detail || errDetail; } catch (_) {}
+    throw new Error(`fal.ai 送信エラー (${submitRes.statusCode}): ${errDetail}`);
+  }
+
+  const submitJson = JSON.parse(submitRes.body);
+  const requestId = submitJson.request_id;
+  console.log(`[fal.ai] ジョブ送信完了: ${requestId}`);
+
+  // 2. Poll status until COMPLETED or FAILED
+  const deadline = Date.now() + 120000; // 2 minutes
+  while (Date.now() < deadline) {
+    await sleep(3000);
+
+    const statusRes = await makeHttpsRequest({
+      hostname: 'queue.fal.run',
+      path: `/fal-ai/cat-vton/requests/${requestId}/status`,
+      method: 'GET',
+      headers: { 'Authorization': `Key ${FAL_KEY}` },
+      timeout: 10000
+    });
+
+    if (statusRes.statusCode !== 200) continue;
+
+    const status = JSON.parse(statusRes.body);
+    console.log(`[fal.ai] ステータス: ${status.status}`);
+
+    if (status.status === 'COMPLETED') {
+      // 3. Fetch final result
+      const resultRes = await makeHttpsRequest({
+        hostname: 'queue.fal.run',
+        path: `/fal-ai/cat-vton/requests/${requestId}`,
+        method: 'GET',
+        headers: { 'Authorization': `Key ${FAL_KEY}` },
+        timeout: 10000
+      });
+
+      const result = JSON.parse(resultRes.body);
+      if (!result.image || !result.image.url) {
+        throw new Error('fal.ai から画像URLが返されませんでした');
+      }
+      console.log(`[fal.ai] 生成完了: ${result.image.url}`);
+      return { imageUrl: result.image.url, width: result.image.width, height: result.image.height };
+    }
+
+    if (status.status === 'FAILED') {
+      const errMsg = status.error?.message || status.error || '処理に失敗しました';
+      throw new Error(`fal.ai 処理失敗: ${errMsg}`);
+    }
+    // IN_QUEUE or IN_PROGRESS → continue polling
+  }
+
+  throw new Error('タイムアウト: 2分以内に処理が完了しませんでした');
+}
+
+// ─── Claude API analysis (kept for reference) ────────────────────────────────
+async function runClaudeAnalysis(imageBase64, imageMediaType, kimonoName, kimonoDescription, kimonoColor) {
+  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY が設定されていません');
+
+  const requestBody = JSON.stringify({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } },
+        {
+          type: 'text',
+          text: `この写真の人物が「${kimonoName}」（${kimonoDescription}）を着用したときの様子を描写してください。
+着物の特徴: 名前=${kimonoName}, 説明=${kimonoDescription}, 色=${kimonoColor}
+以下のJSONのみで回答してください:
+{"overall_impression":"全体印象","kimono_fit":"着こなし","color_harmony":"色調調和","style_advice":"アドバイス","scene_suggestion":"おすすめシーン"}`
+        }
+      ]
+    }]
+  });
+
+  const res = await makeHttpsRequest({
+    hostname: 'api.anthropic.com',
+    path: '/v1/messages',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'Content-Length': Buffer.byteLength(requestBody)
+    },
+    timeout: 60000
+  }, requestBody);
+
+  const apiResponse = JSON.parse(res.body);
+  if (apiResponse.error) throw new Error(apiResponse.error.message);
+  const text = apiResponse.content?.find(b => b.type === 'text')?.text || '';
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  return jsonMatch ? JSON.parse(jsonMatch[0]) : { overall_impression: text };
+}
+
+// ─── Request body reader ──────────────────────────────────────────────────────
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+    req.on('error', reject);
+  });
+}
+
+// ─── HTTP Server ──────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
+  function json(statusCode, data) {
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
   }
 
-  // Serve index.html
+  // Serve HTML
   if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
-    const filePath = path.join(__dirname, 'index.html');
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        res.writeHead(500);
-        res.end('Error loading index.html');
-        return;
-      }
+    fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
+      if (err) { res.writeHead(500); res.end('Error loading index.html'); return; }
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(data);
     });
     return;
   }
 
-  // Claude API proxy
-  if (req.method === 'POST' && req.url === '/api/generate') {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', async () => {
-      try {
-        const { imageBase64, imageMediaType, kimonoName, kimonoDescription, kimonoColor } = JSON.parse(body);
+  // ── POST /api/tryon : fal.ai CatVTON virtual try-on ──────────────────────
+  if (req.method === 'POST' && req.url === '/api/tryon') {
+    try {
+      const body = await readBody(req);
+      const { personBase64, personMediaType, kimonoBase64, kimonoMediaType } = JSON.parse(body);
 
-        if (!ANTHROPIC_API_KEY) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'ANTHROPIC_API_KEY が設定されていません。環境変数に設定してください。' }));
-          return;
-        }
+      if (!personBase64 || !kimonoBase64) return json(400, { error: '人物写真と着物画像の両方が必要です' });
 
-        const requestBody = JSON.stringify({
-          model: 'claude-opus-4-6',
-          max_tokens: 1024,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: imageMediaType,
-                    data: imageBase64
-                  }
-                },
-                {
-                  type: 'text',
-                  text: `この写真の人物が「${kimonoName}」（${kimonoDescription}）を着用したときの様子を、視覚的に鮮明に描写してください。
+      const personKB = Math.round(personBase64.length * 0.75 / 1024);
+      const kimonoKB = Math.round(kimonoBase64.length * 0.75 / 1024);
+      console.log(`[tryon] 人物: ${personKB}KB, 着物: ${kimonoKB}KB`);
 
-着物の特徴：
-- 名前：${kimonoName}
-- 説明：${kimonoDescription}
-- 主な色：${kimonoColor}
-
-以下の形式でJSONのみで回答してください（マークダウン不要）：
-{
-  "overall_impression": "全体的な印象（2〜3文）",
-  "kimono_fit": "着物の着こなしの描写（2〜3文）",
-  "color_harmony": "顔色・肌色との色調の調和（1〜2文）",
-  "style_advice": "スタイリングアドバイス（1〜2文）",
-  "scene_suggestion": "どんなシーンに合うか（1文）"
-}`
-                }
-              ]
-            }
-          ]
-        });
-
-        const options = {
-          hostname: 'api.anthropic.com',
-          path: '/v1/messages',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-            'Content-Length': Buffer.byteLength(requestBody)
-          }
-        };
-
-        const apiReq = http.request(options, (apiRes) => {
-          let apiBody = '';
-          apiRes.on('data', chunk => { apiBody += chunk.toString(); });
-          apiRes.on('end', () => {
-            try {
-              const apiResponse = JSON.parse(apiBody);
-              if (apiResponse.error) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: apiResponse.error.message }));
-                return;
-              }
-              const textContent = apiResponse.content?.find(b => b.type === 'text')?.text || '';
-              // Extract JSON from response
-              const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ result: JSON.parse(jsonMatch[0]) }));
-              } else {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ result: { overall_impression: textContent } }));
-              }
-            } catch (e) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'APIレスポンスの解析に失敗しました' }));
-            }
-          });
-        });
-
-        apiReq.on('error', (e) => {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Claude APIへの接続に失敗: ${e.message}` }));
-        });
-
-        apiReq.write(requestBody);
-        apiReq.end();
-
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'リクエストの解析に失敗しました' }));
-      }
-    });
+      const result = await runVirtualTryOn(personBase64, personMediaType, kimonoBase64, kimonoMediaType);
+      json(200, result);
+    } catch (e) {
+      console.error('[tryon] エラー:', e.message);
+      json(500, { error: e.message });
+    }
     return;
   }
 
-  res.writeHead(404);
-  res.end('Not Found');
+  // ── POST /api/generate : Claude Vision analysis (legacy) ─────────────────
+  if (req.method === 'POST' && req.url === '/api/generate') {
+    try {
+      const body = await readBody(req);
+      const { imageBase64, imageMediaType, kimonoName, kimonoDescription, kimonoColor } = JSON.parse(body);
+      const result = await runClaudeAnalysis(imageBase64, imageMediaType, kimonoName, kimonoDescription, kimonoColor);
+      json(200, { result });
+    } catch (e) {
+      console.error('[generate] エラー:', e.message);
+      json(500, { error: e.message });
+    }
+    return;
+  }
+
+  res.writeHead(404); res.end('Not Found');
 });
 
 server.listen(PORT, () => {
-  console.log(`🎌 AI着物試着デモ起動中: http://localhost:${PORT}`);
-  if (!ANTHROPIC_API_KEY) {
-    console.warn('⚠️  ANTHROPIC_API_KEY が未設定です。export ANTHROPIC_API_KEY=your_key で設定してください。');
-  }
+  console.log(`\n🎌 AI着物試着デモ起動中: http://localhost:${PORT}\n`);
+  if (!FAL_KEY) console.warn('⚠️  FAL_KEY 未設定 → export FAL_KEY=your_fal_key');
+  if (!ANTHROPIC_API_KEY) console.warn('⚠️  ANTHROPIC_API_KEY 未設定 (Claude分析には不要)');
 });
