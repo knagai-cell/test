@@ -89,6 +89,42 @@ async function compressImage(file, maxPx = 1024, quality = 0.85) {
   });
 }
 
+// ─── Kimono presets ──────────────────────────────────────────────────────────
+const PRESETS = [
+  { id: 'red',   label: '赤振袖', src: '/public/kimonos/red.jpg',   color: 'from-red-400 to-rose-600',   ring: 'ring-red-400',   bg: 'bg-red-50',   border: 'border-red-300'   },
+  { id: 'blue',  label: '青振袖', src: '/public/kimonos/blue.jpg',  color: 'from-blue-400 to-indigo-600', ring: 'ring-blue-400',  bg: 'bg-blue-50',  border: 'border-blue-300'  },
+  { id: 'black', label: '黒振袖', src: '/public/kimonos/black.jpg', color: 'from-gray-700 to-gray-900',  ring: 'ring-gray-500',  bg: 'bg-gray-50',  border: 'border-gray-400'  },
+];
+
+async function compressImageFromUrl(url, maxPx = 768, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        if (width >= height) { height = Math.round(height * maxPx / width); width = maxPx; }
+        else                 { width  = Math.round(width  * maxPx / height); height = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = e => resolve({
+          base64: e.target.result.split(',')[1],
+          mediaType: 'image/jpeg',
+          previewUrl: e.target.result,
+          sizePx: `${width}×${height}`
+        });
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => reject(new Error(`プリセット画像を読み込めませんでした: ${url}`));
+    img.src = url;
+  });
+}
+
 // ─── Upload Zone Component ───────────────────────────────────────────────────
 function UploadZone({ label, icon, preview, onFile, hint }) {
   const [dragging, setDragging] = useState(false);
@@ -134,6 +170,55 @@ function UploadZone({ label, icon, preview, onFile, hint }) {
       )}
       <input ref={inputRef} type="file" accept="image/*" capture="user"
         className="hidden" onChange={e => { if (e.target.files[0]) onFile(e.target.files[0]); }} />
+    </div>
+  );
+}
+
+// ─── Preset Kimono Cards ─────────────────────────────────────────────────────
+function KimonoPresets({ selected, onSelect, loading: presetLoading }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 mb-3">
+      {PRESETS.map(p => (
+        <button
+          key={p.id}
+          disabled={presetLoading === p.id}
+          onClick={() => onSelect(p)}
+          className={`relative rounded-xl overflow-hidden border-2 transition-all
+            ${selected === p.id
+              ? `${p.border} ring-2 ${p.ring} ring-offset-1 shadow-md`
+              : 'border-gray-200 hover:border-gray-300 shadow-sm'}`}
+        >
+          {/* Thumbnail image */}
+          <div className={`w-full aspect-[3/4] bg-gradient-to-b ${p.color} relative`}>
+            <img
+              src={p.src}
+              alt={p.label}
+              className="w-full h-full object-cover"
+              onError={e => { e.currentTarget.style.display = 'none'; }}
+            />
+            {/* Loading spinner overlay */}
+            {presetLoading === p.id && (
+              <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                <svg className="animate-spin w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+              </div>
+            )}
+            {/* Selected checkmark */}
+            {selected === p.id && (
+              <div className="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                </svg>
+              </div>
+            )}
+          </div>
+          <div className={`py-1.5 text-xs font-semibold text-center ${selected === p.id ? p.bg + ' text-gray-700' : 'bg-white text-gray-600'}`}>
+            {p.label}
+          </div>
+        </button>
+      ))}
     </div>
   );
 }
@@ -229,8 +314,10 @@ function ResultImage({ imageUrl, onReset }) {
 
 // ─── Main App ────────────────────────────────────────────────────────────────
 function App() {
-  const [person, setPerson] = useState(null);   // { base64, mediaType, previewUrl }
-  const [kimono, setKimono] = useState(null);   // { base64, mediaType, previewUrl }
+  const [person, setPerson] = useState(null);        // { base64, mediaType, previewUrl }
+  const [kimono, setKimono] = useState(null);        // { base64, mediaType, previewUrl }
+  const [selectedPreset, setSelectedPreset] = useState(null); // preset id string
+  const [presetLoading, setPresetLoading] = useState(null);   // preset id being loaded
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [resultUrl, setResultUrl] = useState(null);
@@ -257,9 +344,26 @@ function App() {
 
   const handleKimonoFile = useCallback(async (file) => {
     setError(null); setResultUrl(null);
+    setSelectedPreset(null);
     const data = await compressImage(file, 768);
     setKimono(data);
   }, []);
+
+  const handlePresetSelect = useCallback(async (preset) => {
+    if (selectedPreset === preset.id) return; // already selected
+    setError(null); setResultUrl(null);
+    setSelectedPreset(preset.id);
+    setPresetLoading(preset.id);
+    try {
+      const data = await compressImageFromUrl(preset.src);
+      setKimono(data);
+    } catch (e) {
+      setError(`プリセット画像の読み込みに失敗: ${e.message}`);
+      setSelectedPreset(null);
+    } finally {
+      setPresetLoading(null);
+    }
+  }, [selectedPreset]);
 
   const handleGenerate = async () => {
     if (!person || !kimono) return;
@@ -330,17 +434,35 @@ function App() {
 
         {/* ── Step 2: Kimono image ── */}
         <section>
-          <StepHeader num={2} title="着物の画像" done={!!kimono} />
+          <StepHeader num={2} title="着物を選択" done={!!kimono} />
+
+          {/* Preset cards */}
+          <KimonoPresets
+            selected={selectedPreset}
+            onSelect={handlePresetSelect}
+            loading={presetLoading}
+          />
+
+          {/* Divider */}
+          <div className="flex items-center gap-2 my-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 font-medium">または独自の着物画像をアップロード</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Custom upload */}
           <UploadZone
             label="着物 / 衣装画像をアップロード"
             icon="👘"
             hint="着物・浴衣・和服など · JPG / PNG · 5MB以下"
-            preview={kimono?.previewUrl}
+            preview={!selectedPreset ? kimono?.previewUrl : null}
             onFile={handleKimonoFile}
           />
           {kimono && (
             <p className="text-xs text-gray-400 mt-1.5 ml-1">
-              読み込み完了 ({kimono.sizePx})
+              {selectedPreset
+                ? `${PRESETS.find(p => p.id === selectedPreset)?.label} を選択中 (${kimono.sizePx})`
+                : `カスタム画像 (${kimono.sizePx})`}
             </p>
           )}
         </section>
