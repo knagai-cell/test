@@ -673,7 +673,7 @@
         ctx.beginPath();
         for (let x = 0; x <= w; x += 4) {
           const wy = y + Math.sin((x / w) * Math.PI * 4) * 8;
-          row === 0 && x === 0 ? ctx.moveTo(x, wy) : ctx.lineTo(x, wy);
+          x === 0 ? ctx.moveTo(x, wy) : ctx.lineTo(x, wy);
         }
         ctx.stroke();
       }
@@ -744,9 +744,9 @@
   }
 
   // ── Claude API Call ───────────────────────────────
-  async function callClaude(apiKey, photoBase64, photoMime, kimono) {
+  async function callClaude(apiKey, kimono) {
     const prompt = `あなたは着物スタイリストのAIです。
-添付された写真の人物が「${kimono.name}」を着用したときの着用イメージを、
+「${kimono.name}」を着用したときの着用イメージを、
 以下の視点から日本語で詳しく描写してください（200〜300文字程度）：
 ・着物の色や柄が人物にどう映えるか
 ・全体的な雰囲気・印象
@@ -760,17 +760,7 @@ ${kimono.description}`;
       max_tokens: 512,
       messages: [{
         role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: photoMime,
-              data: photoBase64,
-            },
-          },
-          { type: 'text', text: prompt },
-        ],
+        content: prompt,
       }],
     };
 
@@ -811,7 +801,7 @@ ${kimono.description}`;
       const mime = header.match(/:(.*?);/)[1];
 
       $('loadingStatus').textContent = 'Claude AIが着物姿を想像中...';
-      const description = await callClaude(apiKey, b64, mime, kimono);
+      const description = await callClaude(apiKey, kimono);
 
       // Draw canvas composite
       drawComposite(kimono);
