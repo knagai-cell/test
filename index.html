@@ -744,14 +744,14 @@
   }
 
   // ── Claude API Call ───────────────────────────────
-  async function callClaude(apiKey, photoBase64, photoMime, kimono) {
+  async function callClaude(apiKey, kimono) {
     const prompt = `あなたは着物スタイリストのAIです。
-添付された写真の人物が「${kimono.name}」を着用したときの着用イメージを、
-以下の視点から日本語で詳しく描写してください（200〜300文字程度）：
-・着物の色や柄が人物にどう映えるか
-・全体的な雰囲気・印象
-・どんなシーンや季節に似合うか
-・おすすめの帯や小物の合わせ方
+「${kimono.name}」の着物について、以下の視点から日本語でスタイリングアドバイスを書いてください（200〜300文字程度）。
+人物の外見・体型・顔立ちへの言及は不要です。着物自体の魅力と活用法に集中してください：
+・この着物の色・柄・素材感の特徴と魅力
+・最もふさわしいシーン・季節・場面
+・帯・草履・バッグ・髪飾りなど小物とのコーディネート提案
+・着こなしをより美しく見せるポイント
 
 ${kimono.description}`;
 
@@ -760,17 +760,7 @@ ${kimono.description}`;
       max_tokens: 512,
       messages: [{
         role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: photoMime,
-              data: photoBase64,
-            },
-          },
-          { type: 'text', text: prompt },
-        ],
+        content: prompt,
       }],
     };
 
@@ -806,12 +796,8 @@ ${kimono.description}`;
     $('loadingStatus').textContent = '写真を解析しています...';
 
     try {
-      // Parse data URL
-      const [header, b64] = uploadedDataURL.split(',');
-      const mime = header.match(/:(.*?);/)[1];
-
-      $('loadingStatus').textContent = 'Claude AIが着物姿を想像中...';
-      const description = await callClaude(apiKey, b64, mime, kimono);
+      $('loadingStatus').textContent = 'Claude AIがスタイリングアドバイスを生成中...';
+      const description = await callClaude(apiKey, kimono);
 
       // Draw canvas composite
       drawComposite(kimono);
