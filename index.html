@@ -90,6 +90,31 @@
       color: #999;
       margin-top: 6px;
     }
+    .api-key-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .api-key-row .api-key-input { flex: 1; }
+    .api-key-save {
+      font-size: 0.7rem;
+      color: #8b1c3f;
+      background: #fdf0f5;
+      border: 1.5px solid #e0d0d8;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .api-key-save:hover { background: #f8d8e8; }
+    .api-key-saved {
+      font-size: 0.7rem;
+      color: #4caf50;
+      margin-top: 6px;
+      display: none;
+    }
 
     /* ── Photo Upload ─────────────────────────────── */
     .upload-zone {
@@ -287,6 +312,19 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: #8b1c3f; font-weight: 600; font-size: 0.9rem; }
     .loading-sub { color: #aaa; font-size: 0.75rem; margin-top: 6px; }
+    .loading-steps {
+      margin-top: 14px;
+      text-align: left;
+      display: inline-block;
+    }
+    .loading-step {
+      font-size: 0.75rem;
+      color: #bbb;
+      padding: 3px 0;
+      transition: color 0.3s;
+    }
+    .loading-step.active { color: #8b1c3f; font-weight: 600; }
+    .loading-step.done { color: #4caf50; }
 
     /* ── Result ───────────────────────────────────── */
     .result-card {
@@ -378,7 +416,38 @@
     /* ── Utilities ────────────────────────────────── */
     .hidden { display: none !important; }
 
-    /* ── Pattern overlay colors for canvas ─────────── */
+    /* ── Responsive ─────────────────────────────────── */
+    @media (min-width: 600px) {
+      .app {
+        max-width: 560px;
+        padding-top: 20px;
+      }
+      .header {
+        border-radius: 0 0 20px 20px;
+        margin: 0 16px;
+        position: relative;
+      }
+      .section { margin: 20px 16px 0; padding: 24px; }
+      .kimono-grid { gap: 14px; }
+      .generate-btn { margin: 20px 16px 0; width: calc(100% - 32px); }
+    }
+
+    @media (min-width: 900px) {
+      .app {
+        max-width: 640px;
+      }
+      .kimono-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .kimono-visual { aspect-ratio: 2/3; }
+    }
+
+    /* Touch feedback */
+    @media (hover: none) {
+      .kimono-card:active { transform: scale(0.97); }
+      .generate-btn:active:not(:disabled) { transform: scale(0.98); }
+    }
   </style>
 </head>
 <body>
@@ -394,14 +463,18 @@
   <!-- Section 0: API Key -->
   <section class="section">
     <div class="section-label">🔑 Anthropic API Key</div>
-    <input
-      type="password"
-      id="apiKey"
-      class="api-key-input"
-      placeholder="sk-ant-..."
-      autocomplete="off"
-    />
-    <p class="api-key-hint">※ APIキーはブラウザ内のみで使用され、外部には送信されません</p>
+    <div class="api-key-row">
+      <input
+        type="password"
+        id="apiKey"
+        class="api-key-input"
+        placeholder="sk-ant-..."
+        autocomplete="off"
+      />
+      <button class="api-key-save" id="saveKeyBtn" onclick="saveApiKey()">保存</button>
+    </div>
+    <p class="api-key-hint">※ APIキーはブラウザのlocalStorageに保存されます（外部送信なし）</p>
+    <p class="api-key-saved" id="apiKeySaved">✓ 保存しました</p>
   </section>
 
   <!-- Section 1: Photo Upload -->
@@ -513,7 +586,11 @@
   <div id="loadingCard" class="loading-card hidden">
     <div class="spinner"></div>
     <div class="loading-text">AIが着物姿を生成中...</div>
-    <div class="loading-sub" id="loadingStatus">写真を解析しています</div>
+    <div class="loading-steps">
+      <div class="loading-step" id="step1">1. 写真を解析中...</div>
+      <div class="loading-step" id="step2">2. Claude AIが着物姿を想像中...</div>
+      <div class="loading-step" id="step3">3. 着用イメージを合成中...</div>
+    </div>
   </div>
 
   <!-- Error State -->
@@ -521,7 +598,7 @@
     <div class="error-icon">⚠️</div>
     <div class="error-text" id="errorText">エラーが発生しました</div>
   </div>
-  <button class="retry-btn hidden" id="retryBtn" onclick="resetResult()">もう一度試す</button>
+  <button class="retry-btn hidden" id="retryBtn" onclick="retryGenerate()">もう一度試す</button>
 
   <!-- Result -->
   <div id="resultCard" class="result-card hidden">
@@ -545,6 +622,24 @@
   // ── State ────────────────────────────────────────
   let uploadedDataURL = null;
   let selectedKimono = null;
+
+  // ── localStorage API Key ────────────────────────
+  function loadApiKey() {
+    const saved = localStorage.getItem('kimono_api_key');
+    if (saved) {
+      $('apiKey').value = saved;
+    }
+  }
+  function saveApiKey() {
+    const key = $('apiKey').value.trim();
+    if (key) {
+      localStorage.setItem('kimono_api_key', key);
+      const msg = $('apiKeySaved');
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 2000);
+    }
+    updateGenerateBtn();
+  }
 
   const KIMONOS = {
     sakura: {
@@ -617,12 +712,20 @@
   }
 
   // ── Canvas Composite ─────────────────────────────
+  // Seeded random for consistent patterns
+  function seededRandom(seed) {
+    let s = seed;
+    return function() {
+      s = (s * 16807 + 0) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
+  }
+
   function drawComposite(kimono) {
     const canvas = $('resultCanvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
     img.onload = () => {
-      // 3:4 portrait ratio
       const w = img.naturalWidth;
       const h = img.naturalHeight;
       const targetW = 480;
@@ -633,37 +736,55 @@
       // Draw base photo
       ctx.drawImage(img, 0, 0, targetW, targetH);
 
-      // Kimono color overlay (lower body)
-      const overlayTop = targetH * 0.35;
-      const overlayH = targetH * 0.65;
+      // Soft color tint over full image
+      const tintGrad = ctx.createLinearGradient(0, 0, 0, targetH);
+      tintGrad.addColorStop(0, hexToRgba(kimono.color1, 0.08));
+      tintGrad.addColorStop(0.3, hexToRgba(kimono.color1, 0.15));
+      tintGrad.addColorStop(1, hexToRgba(kimono.color2, 0.25));
+      ctx.fillStyle = tintGrad;
+      ctx.fillRect(0, 0, targetW, targetH);
+
+      // Kimono color overlay (body area, more natural gradient)
+      const overlayTop = targetH * 0.3;
       const grad = ctx.createLinearGradient(0, overlayTop, 0, targetH);
       grad.addColorStop(0, hexToRgba(kimono.color1, 0));
-      grad.addColorStop(0.25, hexToRgba(kimono.color1, 0.45));
-      grad.addColorStop(1, hexToRgba(kimono.color2, 0.6));
+      grad.addColorStop(0.15, hexToRgba(kimono.color1, 0.25));
+      grad.addColorStop(0.5, hexToRgba(kimono.color2, 0.4));
+      grad.addColorStop(1, hexToRgba(kimono.color2, 0.5));
       ctx.fillStyle = grad;
-      ctx.fillRect(0, overlayTop, targetW, overlayH);
+      ctx.fillRect(0, overlayTop, targetW, targetH - overlayTop);
 
-      // Pattern layer
+      // Pattern layer (seeded for consistency)
       drawPattern(ctx, kimono, targetW, targetH);
 
       // Subtle vignette
       const vig = ctx.createRadialGradient(targetW/2, targetH/2, targetH*0.3, targetW/2, targetH/2, targetH*0.8);
       vig.addColorStop(0, 'rgba(0,0,0,0)');
-      vig.addColorStop(1, 'rgba(0,0,0,0.25)');
+      vig.addColorStop(1, 'rgba(0,0,0,0.2)');
       ctx.fillStyle = vig;
       ctx.fillRect(0, 0, targetW, targetH);
+
+      // Bottom fade with kimono color
+      const bottomGrad = ctx.createLinearGradient(0, targetH * 0.85, 0, targetH);
+      bottomGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      bottomGrad.addColorStop(1, hexToRgba(kimono.color2, 0.3));
+      ctx.fillStyle = bottomGrad;
+      ctx.fillRect(0, targetH * 0.85, targetW, targetH * 0.15);
     };
     img.src = uploadedDataURL;
   }
 
   function drawPattern(ctx, kimono, w, h) {
+    const rand = seededRandom(42);
     ctx.save();
     ctx.globalAlpha = 0.3;
     if (kimono.pattern === 'sakura') {
-      for (let i = 0; i < 18; i++) {
-        const x = Math.random() * w;
-        const y = h * 0.4 + Math.random() * h * 0.55;
-        drawSakura(ctx, x, y, 10 + Math.random() * 14, kimono.accent);
+      for (let i = 0; i < 22; i++) {
+        const x = rand() * w;
+        const y = h * 0.35 + rand() * h * 0.6;
+        const size = 8 + rand() * 16;
+        ctx.globalAlpha = 0.15 + rand() * 0.2;
+        drawSakura(ctx, x, y, size, kimono.accent);
       }
     } else if (kimono.pattern === 'wave') {
       ctx.strokeStyle = 'rgba(255,255,255,0.5)';
@@ -673,15 +794,16 @@
         ctx.beginPath();
         for (let x = 0; x <= w; x += 4) {
           const wy = y + Math.sin((x / w) * Math.PI * 4) * 8;
-          row === 0 && x === 0 ? ctx.moveTo(x, wy) : ctx.lineTo(x, wy);
+          x === 0 ? ctx.moveTo(x, wy) : ctx.lineTo(x, wy);
         }
         ctx.stroke();
       }
     } else if (kimono.pattern === 'crane') {
-      for (let i = 0; i < 5; i++) {
-        const x = 60 + Math.random() * (w - 120);
-        const y = h * 0.45 + Math.random() * h * 0.45;
-        drawCrane(ctx, x, y, 20 + Math.random() * 16);
+      for (let i = 0; i < 6; i++) {
+        const x = 60 + rand() * (w - 120);
+        const y = h * 0.4 + rand() * h * 0.5;
+        ctx.globalAlpha = 0.2 + rand() * 0.15;
+        drawCrane(ctx, x, y, 18 + rand() * 18);
       }
     }
     ctx.restore();
@@ -756,7 +878,7 @@
 ${kimono.description}`;
 
     const body = {
-      model: 'claude-opus-4-6',
+      model: 'claude-sonnet-4-5-20241022',
       max_tokens: 512,
       messages: [{
         role: 'user',
@@ -793,6 +915,16 @@ ${kimono.description}`;
     return data.content.find(b => b.type === 'text')?.text || '';
   }
 
+  // ── Loading Steps ────────────────────────────────
+  function setStep(n) {
+    for (let i = 1; i <= 3; i++) {
+      const el = $('step' + i);
+      el.classList.remove('active', 'done');
+      if (i < n) el.classList.add('done');
+      else if (i === n) el.classList.add('active');
+    }
+  }
+
   // ── Generate ─────────────────────────────────────
   async function generate() {
     if (!uploadedDataURL || !selectedKimono) return;
@@ -803,16 +935,17 @@ ${kimono.description}`;
 
     // Show loading
     setView('loading');
-    $('loadingStatus').textContent = '写真を解析しています...';
+    setStep(1);
 
     try {
       // Parse data URL
       const [header, b64] = uploadedDataURL.split(',');
       const mime = header.match(/:(.*?);/)[1];
 
-      $('loadingStatus').textContent = 'Claude AIが着物姿を想像中...';
+      setStep(2);
       const description = await callClaude(apiKey, b64, mime, kimono);
 
+      setStep(3);
       // Draw canvas composite
       drawComposite(kimono);
 
@@ -823,9 +956,22 @@ ${kimono.description}`;
 
       setView('result');
     } catch (e) {
-      $('errorText').textContent = e.message || '不明なエラーが発生しました';
+      let msg = e.message || '不明なエラーが発生しました';
+      if (msg.includes('401') || msg.includes('authentication')) {
+        msg = 'APIキーが無効です。正しいキーを入力してください。';
+      } else if (msg.includes('429')) {
+        msg = 'リクエストが多すぎます。しばらく待ってから再試行してください。';
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        msg = 'ネットワークエラーです。インターネット接続を確認してください。';
+      }
+      $('errorText').textContent = msg;
       setView('error');
     }
+  }
+
+  function retryGenerate() {
+    setView('hidden');
+    generate();
   }
 
   function setView(state) {
@@ -849,6 +995,7 @@ ${kimono.description}`;
   }
 
   // ── Init ─────────────────────────────────────────
+  loadApiKey();
   updateGenerateBtn();
 </script>
 </body>
