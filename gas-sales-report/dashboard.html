@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      padding: 16px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .header {
+      background: linear-gradient(135deg, #0d47a1, #1565c0);
+      color: #fff;
+      padding: 20px 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header h1 { font-size: 22px; }
+    .header-controls { display: flex; gap: 10px; align-items: center; }
+    .header a {
+      color: #fff;
+      background: rgba(255,255,255,0.2);
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .header a:hover { background: rgba(255,255,255,0.3); }
+    .header input[type="date"] {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    /* サマリーカード */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .summary-card .label { font-size: 12px; color: #666; margin-bottom: 4px; }
+    .summary-card .value { font-size: 24px; font-weight: 700; color: #1a73e8; }
+    .summary-card .sub { font-size: 11px; color: #999; margin-top: 2px; }
+
+    /* テーブル */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d47a1;
+      margin-bottom: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      background: #e3f2fd;
+      color: #0d47a1;
+      padding: 10px 8px;
+      text-align: center;
+      white-space: nowrap;
+      border-bottom: 2px solid #bbdefb;
+    }
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e8eaed;
+      vertical-align: top;
+    }
+    tr:hover { background: #f8f9fa; }
+    .num { text-align: center; }
+    .rate {
+      text-align: center;
+      font-weight: 600;
+      color: #1a73e8;
+    }
+    .text-cell {
+      max-width: 200px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+    }
+
+    /* コメント入力 */
+    .comment-area {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+    .comment-area textarea {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      font-size: 12px;
+      resize: vertical;
+      min-height: 60px;
+    }
+    .comment-area textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+    .comment-btn {
+      padding: 6px 12px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .comment-btn:hover { background: #1557b0; }
+    .comment-saved {
+      font-size: 11px;
+      color: #137333;
+      margin-top: 4px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 16px;
+    }
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    /* 詳細トグル */
+    .detail-toggle {
+      background: none;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #1a73e8;
+    }
+    .detail-row { display: none; }
+    .detail-row.show { display: table-row; }
+    .detail-content {
+      padding: 12px;
+      background: #fafafa;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .detail-item label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .detail-item p {
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 768px) {
+      .summary-grid { grid-template-columns: repeat(3, 1fr); }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>上長ダッシュボード</h1>
+      <div class="header-controls">
+        <input type="date" id="filterDate" onchange="loadData()">
+        <a href="?page=index">← 日報入力へ</a>
+      </div>
+    </div>
+
+    <!-- サマリー -->
+    <div class="summary-grid" id="summaryArea">
+      <div class="summary-card">
+        <div class="label">提出数</div>
+        <div class="value" id="sumCount">-</div>
+        <div class="sub">/ 20名</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">総接触数</div>
+        <div class="value" id="sumContact">-</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">総アポ数</div>
+        <div class="value" id="sumAppo">-</div>
+        <div class="sub" id="sumAppoRate"></div>
+      </div>
+      <div class="summary-card">
+        <div class="label">総商談数</div>
+        <div class="value" id="sumMeeting">-</div>
+        <div class="sub" id="sumMeetingRate"></div>
+      </div>
+      <div class="summary-card">
+        <div class="label">総申込数</div>
+        <div class="value" id="sumApp">-</div>
+        <div class="sub" id="sumAppRate"></div>
+      </div>
+      <div class="summary-card">
+        <div class="label">総成約数</div>
+        <div class="value" id="sumContract">-</div>
+        <div class="sub" id="sumContractRate"></div>
+      </div>
+    </div>
+
+    <!-- 一覧テーブル -->
+    <div class="card">
+      <div class="card-title">日報一覧</div>
+      <div id="tableArea">
+        <div class="loading">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初期化
+    window.addEventListener('DOMContentLoaded', function() {
+      var today = new Date();
+      var dateStr = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+      document.getElementById('filterDate').value = dateStr;
+      loadData();
+    });
+
+    // データ読み込み
+    function loadData() {
+      var date = document.getElementById('filterDate').value;
+      document.getElementById('tableArea').innerHTML = '<div class="loading">読み込み中...</div>';
+
+      // サマリーと日報を同時に取得
+      google.script.run
+        .withSuccessHandler(renderSummary)
+        .withFailureHandler(function(err) { console.error(err); })
+        .getTeamSummary(date);
+
+      google.script.run
+        .withSuccessHandler(renderTable)
+        .withFailureHandler(function(err) {
+          document.getElementById('tableArea').innerHTML =
+            '<div class="empty">データの読み込みに失敗しました</div>';
+        })
+        .getReportsByDate(date);
+    }
+
+    // サマリー描画
+    function renderSummary(s) {
+      document.getElementById('sumCount').textContent = s.reportCount;
+      document.getElementById('sumContact').textContent = s.totalContact;
+      document.getElementById('sumAppo').textContent = s.totalAppo;
+      document.getElementById('sumMeeting').textContent = s.totalMeeting;
+      document.getElementById('sumApp').textContent = s.totalApplication;
+      document.getElementById('sumContract').textContent = s.totalContract;
+      document.getElementById('sumAppoRate').textContent = 'アポ率 ' + (s.avgAppoRate || 0) + '%';
+      document.getElementById('sumMeetingRate').textContent = '商談化率 ' + (s.avgMeetingRate || 0) + '%';
+      document.getElementById('sumAppRate').textContent = '申込率 ' + (s.avgApplicationRate || 0) + '%';
+      document.getElementById('sumContractRate').textContent = '成約率 ' + (s.avgContractRate || 0) + '%';
+    }
+
+    // テーブル描画
+    function renderTable(reports) {
+      if (!reports || reports.length === 0) {
+        document.getElementById('tableArea').innerHTML =
+          '<div class="empty">この日の日報はまだありません</div>';
+        return;
+      }
+
+      var html = '<table>';
+      html += '<tr>';
+      html += '<th>氏名</th>';
+      html += '<th>接触</th><th>アポ</th><th>商談</th><th>申込</th><th>成約</th>';
+      html += '<th>アポ率</th><th>商談化率</th><th>申込率</th><th>成約率</th>';
+      html += '<th>詳細</th>';
+      html += '<th>上長コメント</th>';
+      html += '</tr>';
+
+      reports.forEach(function(r, idx) {
+        html += '<tr>';
+        html += '<td style="font-weight:600;">' + escHtml(r.employeeName) + '</td>';
+        html += '<td class="num">' + r.contactCount + '</td>';
+        html += '<td class="num">' + r.appoCount + '</td>';
+        html += '<td class="num">' + r.meetingCount + '</td>';
+        html += '<td class="num">' + r.applicationCount + '</td>';
+        html += '<td class="num">' + r.contractCount + '</td>';
+        html += '<td class="rate">' + r.appoRate + '%</td>';
+        html += '<td class="rate">' + r.meetingRate + '%</td>';
+        html += '<td class="rate">' + r.applicationRate + '%</td>';
+        html += '<td class="rate">' + r.contractRate + '%</td>';
+        html += '<td class="num"><button class="detail-toggle" onclick="toggleDetail(' + idx + ')">表示</button></td>';
+        html += '<td>';
+        html += '<div class="comment-area">';
+        html += '<textarea id="comment-' + idx + '" placeholder="コメントを入力">' + escHtml(r.managerComment || '') + '</textarea>';
+        html += '<button class="comment-btn" onclick="saveComment(' + r.rowIndex + ',' + idx + ')">保存</button>';
+        html += '</div>';
+        html += '<div class="comment-saved" id="saved-' + idx + '" style="display:none;">保存しました</div>';
+        html += '</td>';
+        html += '</tr>';
+
+        // 詳細行
+        html += '<tr class="detail-row" id="detail-' + idx + '">';
+        html += '<td colspan="12"><div class="detail-content"><div class="detail-grid">';
+        html += '<div class="detail-item"><label>今日の成功</label><p>' + escHtml(r.todaySuccess || '(未入力)') + '</p></div>';
+        html += '<div class="detail-item"><label>今日の失敗</label><p>' + escHtml(r.todayFailure || '(未入力)') + '</p></div>';
+        html += '<div class="detail-item"><label>明日の改善</label><p>' + escHtml(r.tomorrowImprovement || '(未入力)') + '</p></div>';
+        html += '<div class="detail-item"><label>明日の行動予定</label><p>' + escHtml(r.tomorrowPlan || '(未入力)') + '</p></div>';
+        html += '<div class="detail-item"><label>ボトルネック</label><p>' + escHtml(r.bottleneck || '(未入力)') + '</p></div>';
+        html += '<div class="detail-item"><label>理由</label><p>' + escHtml(r.reason || '(未入力)') + '</p></div>';
+        html += '</div></div></td>';
+        html += '</tr>';
+      });
+
+      html += '</table>';
+      document.getElementById('tableArea').innerHTML = html;
+    }
+
+    // 詳細トグル
+    function toggleDetail(idx) {
+      var row = document.getElementById('detail-' + idx);
+      row.classList.toggle('show');
+    }
+
+    // コメント保存
+    function saveComment(rowIndex, idx) {
+      var comment = document.getElementById('comment-' + idx).value;
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            var el = document.getElementById('saved-' + idx);
+            el.style.display = 'block';
+            setTimeout(function() { el.style.display = 'none'; }, 3000);
+          }
+        })
+        .saveManagerComment(rowIndex, comment);
+    }
+
+    // HTMLエスケープ
+    function escHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

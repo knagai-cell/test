@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      padding: 16px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+
+    /* ヘッダー */
+    .header {
+      background: linear-gradient(135deg, #1a73e8, #4285f4);
+      color: #fff;
+      padding: 20px 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 22px; }
+    .header a {
+      color: #fff;
+      background: rgba(255,255,255,0.2);
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .header a:hover { background: rgba(255,255,255,0.3); }
+
+    /* カード */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a73e8;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e8eaed;
+    }
+
+    /* フォーム */
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      flex: 1;
+      min-width: 180px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+
+    /* KPI グリッド */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .kpi-item { text-align: center; }
+    .kpi-item label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    .kpi-item input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 16px;
+      text-align: center;
+    }
+    .kpi-item input:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+    }
+
+    /* パーセント表示 */
+    .rate-display {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .rate-item {
+      text-align: center;
+      padding: 8px;
+    }
+    .rate-label { font-size: 11px; color: #666; }
+    .rate-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a73e8;
+    }
+
+    /* ボタン */
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+    }
+    .btn:hover { background: #1557b0; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* メッセージ */
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .message.success { display: block; background: #e6f4ea; color: #137333; }
+    .message.error { display: block; background: #fce8e6; color: #c5221f; }
+
+    /* ローディング */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-top: 2px solid transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+      .header { flex-direction: column; gap: 10px; text-align: center; }
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .rate-display { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>営業日報入力</h1>
+      <a href="?page=dashboard">上長ダッシュボード →</a>
+    </div>
+
+    <!-- メッセージ -->
+    <div id="message" class="message"></div>
+
+    <!-- 基本情報 -->
+    <div class="card">
+      <div class="card-title">基本情報</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>報告日</label>
+          <input type="date" id="reportDate">
+        </div>
+        <div class="form-group">
+          <label>氏名</label>
+          <select id="employeeSelect">
+            <option value="">-- 選択してください --</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI数値 -->
+    <div class="card">
+      <div class="card-title">営業KPI</div>
+      <div class="kpi-grid">
+        <div class="kpi-item">
+          <label>当日接触数</label>
+          <input type="number" id="contactCount" min="0" value="0" oninput="calcRates()">
+        </div>
+        <div class="kpi-item">
+          <label>アポ数</label>
+          <input type="number" id="appoCount" min="0" value="0" oninput="calcRates()">
+        </div>
+        <div class="kpi-item">
+          <label>商談数</label>
+          <input type="number" id="meetingCount" min="0" value="0" oninput="calcRates()">
+        </div>
+        <div class="kpi-item">
+          <label>申込数</label>
+          <input type="number" id="applicationCount" min="0" value="0" oninput="calcRates()">
+        </div>
+        <div class="kpi-item">
+          <label>成約数</label>
+          <input type="number" id="contractCount" min="0" value="0" oninput="calcRates()">
+        </div>
+      </div>
+      <div class="rate-display">
+        <div class="rate-item">
+          <div class="rate-label">アポ率</div>
+          <div class="rate-value" id="appoRate">0%</div>
+        </div>
+        <div class="rate-item">
+          <div class="rate-label">商談化率</div>
+          <div class="rate-value" id="meetingRate">0%</div>
+        </div>
+        <div class="rate-item">
+          <div class="rate-label">申込率</div>
+          <div class="rate-value" id="applicationRate">0%</div>
+        </div>
+        <div class="rate-item">
+          <div class="rate-label">成約率</div>
+          <div class="rate-value" id="contractRate">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 振り返り -->
+    <div class="card">
+      <div class="card-title">今日の振り返り</div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>今日の成功</label>
+        <textarea id="todaySuccess" placeholder="うまくいったこと、成果を記入"></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>今日の失敗</label>
+        <textarea id="todayFailure" placeholder="課題や反省点を記入"></textarea>
+      </div>
+    </div>
+
+    <!-- 明日の計画 -->
+    <div class="card">
+      <div class="card-title">明日の計画</div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>明日の改善</label>
+        <textarea id="tomorrowImprovement" placeholder="改善アクションを記入"></textarea>
+      </div>
+      <div class="form-group">
+        <label>明日の行動予定</label>
+        <textarea id="tomorrowPlan" placeholder="具体的な行動予定を記入"></textarea>
+      </div>
+    </div>
+
+    <!-- ボトルネック -->
+    <div class="card">
+      <div class="card-title">ボトルネック（月次改善目標）</div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>ボトルネック</label>
+        <textarea id="bottleneck" placeholder="現在のボトルネックを記入"></textarea>
+      </div>
+      <div class="form-group">
+        <label>理由</label>
+        <textarea id="reason" placeholder="ボトルネックの原因・背景を記入"></textarea>
+      </div>
+    </div>
+
+    <!-- 送信 -->
+    <div class="card" style="text-align:center;">
+      <button class="btn" id="submitBtn" onclick="submitReport()">日報を提出する</button>
+    </div>
+  </div>
+
+  <script>
+    // 初期化
+    window.addEventListener('DOMContentLoaded', function() {
+      // 今日の日付をセット
+      var today = new Date();
+      var dateStr = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+      document.getElementById('reportDate').value = dateStr;
+
+      // 担当者リストを読み込み
+      google.script.run
+        .withSuccessHandler(function(members) {
+          var select = document.getElementById('employeeSelect');
+          members.forEach(function(m) {
+            var opt = document.createElement('option');
+            opt.value = m.id + '|' + m.name;
+            opt.textContent = m.name + '（' + m.department + '）';
+            select.appendChild(opt);
+          });
+        })
+        .withFailureHandler(function(err) {
+          showMessage('担当者リストの読み込みに失敗しました: ' + err.message, 'error');
+        })
+        .getMembers();
+    });
+
+    // パーセント計算
+    function calcRates() {
+      var contact = Number(document.getElementById('contactCount').value) || 0;
+      var appo = Number(document.getElementById('appoCount').value) || 0;
+      var meeting = Number(document.getElementById('meetingCount').value) || 0;
+      var application = Number(document.getElementById('applicationCount').value) || 0;
+      var contract = Number(document.getElementById('contractCount').value) || 0;
+
+      document.getElementById('appoRate').textContent =
+        contact > 0 ? (appo / contact * 100).toFixed(1) + '%' : '0%';
+      document.getElementById('meetingRate').textContent =
+        appo > 0 ? (meeting / appo * 100).toFixed(1) + '%' : '0%';
+      document.getElementById('applicationRate').textContent =
+        meeting > 0 ? (application / meeting * 100).toFixed(1) + '%' : '0%';
+      document.getElementById('contractRate').textContent =
+        application > 0 ? (contract / application * 100).toFixed(1) + '%' : '0%';
+    }
+
+    // 日報送信
+    function submitReport() {
+      var empVal = document.getElementById('employeeSelect').value;
+      if (!empVal) {
+        showMessage('氏名を選択してください。', 'error');
+        return;
+      }
+      var reportDate = document.getElementById('reportDate').value;
+      if (!reportDate) {
+        showMessage('報告日を入力してください。', 'error');
+        return;
+      }
+
+      var parts = empVal.split('|');
+      var report = {
+        reportDate: reportDate,
+        employeeId: parts[0],
+        employeeName: parts[1],
+        contactCount: document.getElementById('contactCount').value,
+        appoCount: document.getElementById('appoCount').value,
+        meetingCount: document.getElementById('meetingCount').value,
+        applicationCount: document.getElementById('applicationCount').value,
+        contractCount: document.getElementById('contractCount').value,
+        todaySuccess: document.getElementById('todaySuccess').value,
+        todayFailure: document.getElementById('todayFailure').value,
+        tomorrowImprovement: document.getElementById('tomorrowImprovement').value,
+        tomorrowPlan: document.getElementById('tomorrowPlan').value,
+        bottleneck: document.getElementById('bottleneck').value,
+        reason: document.getElementById('reason').value
+      };
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>送信中...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btn.disabled = false;
+          btn.textContent = '日報を提出する';
+          if (result.success) {
+            showMessage(result.message, 'success');
+            resetForm();
+          } else {
+            showMessage(result.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = '日報を提出する';
+          showMessage('送信エラー: ' + err.message, 'error');
+        })
+        .saveReport(report);
+    }
+
+    // フォームリセット
+    function resetForm() {
+      ['contactCount','appoCount','meetingCount','applicationCount','contractCount'].forEach(function(id) {
+        document.getElementById(id).value = '0';
+      });
+      ['todaySuccess','todayFailure','tomorrowImprovement','tomorrowPlan','bottleneck','reason'].forEach(function(id) {
+        document.getElementById(id).value = '';
+      });
+      calcRates();
+    }
+
+    // メッセージ表示
+    function showMessage(text, type) {
+      var el = document.getElementById('message');
+      el.textContent = text;
+      el.className = 'message ' + type;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (type === 'success') {
+        setTimeout(function() { el.className = 'message'; }, 5000);
+      }
+    }
+  </script>
+</body>
+</html>
