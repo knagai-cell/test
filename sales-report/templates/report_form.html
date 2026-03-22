@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}{% if report and report.id is defined %}日報編集{% else %}日報新規作成{% endif %} - 営業日報管理{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="/reports" class="text-sm text-blue-600 hover:text-blue-800">← 一覧に戻る</a>
+</div>
+
+<div class="bg-white rounded-lg shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h1 class="text-lg font-bold text-gray-800">
+            {% if report and report.id is defined %}📝 日報編集{% else %}📝 日報新規作成{% endif %}
+        </h1>
+    </div>
+
+    <div class="p-6">
+        {% if errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+            <ul class="list-disc list-inside">
+                {% for e in errors %}
+                <li>{{ e }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="POST"
+              action="{% if report and report.id is defined %}/reports/{{ report.id }}/edit{% else %}/reports/new{% endif %}">
+
+            <!-- 日付 -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">日付 <span class="text-red-500">*</span></label>
+                <input type="date" name="report_date" required
+                       value="{{ report.report_date if report else '' }}"
+                       class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- 数値入力 -->
+            <h2 class="text-sm font-bold text-gray-500 uppercase mb-3">数値入力</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">当日接触数</label>
+                    <input type="number" name="contact_count" min="0" id="contact_count"
+                           value="{{ report.contact_count if report else '0' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg"
+                           oninput="calcRates()">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">アポ数</label>
+                    <input type="number" name="appointment_count" min="0" id="appointment_count"
+                           value="{{ report.appointment_count if report else '0' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg"
+                           oninput="calcRates()">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">商談数</label>
+                    <input type="number" name="meeting_count" min="0" id="meeting_count"
+                           value="{{ report.meeting_count if report else '0' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg"
+                           oninput="calcRates()">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">申込数</label>
+                    <input type="number" name="application_count" min="0" id="application_count"
+                           value="{{ report.application_count if report else '0' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg"
+                           oninput="calcRates()">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">成約数</label>
+                    <input type="number" name="contract_count" min="0" id="contract_count"
+                           value="{{ report.contract_count if report else '0' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg"
+                           oninput="calcRates()">
+                </div>
+            </div>
+
+            <!-- リアルタイム率表示 -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 p-4 bg-gray-50 rounded-lg" id="rateDisplay">
+                <div class="text-center">
+                    <div class="text-xs text-gray-500">アポ率</div>
+                    <div class="text-lg font-bold" id="rate_appointment">-</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-500">商談率</div>
+                    <div class="text-lg font-bold" id="rate_meeting">-</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-500">申込率</div>
+                    <div class="text-lg font-bold" id="rate_application">-</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-500">成約率</div>
+                    <div class="text-lg font-bold" id="rate_contract">-</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-500">接触→成約</div>
+                    <div class="text-lg font-bold text-blue-600" id="rate_overall">-</div>
+                </div>
+            </div>
+
+            <!-- テキスト入力 -->
+            <h2 class="text-sm font-bold text-gray-500 uppercase mb-3">振り返り</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">✅ 今日の成功</label>
+                    <textarea name="success_today" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="今日うまくいったこと">{{ report.success_today if report else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">❌ 今日の失敗</label>
+                    <textarea name="failure_today" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="今日うまくいかなかったこと">{{ report.failure_today if report else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">🔧 明日の改善</label>
+                    <textarea name="improvement_tomorrow" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="明日改善すること">{{ report.improvement_tomorrow if report else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">📋 明日の行動予定</label>
+                    <textarea name="action_plan_tomorrow" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="明日のアクションプラン">{{ report.action_plan_tomorrow if report else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">🎯 ボトルネック（月次改善目標）</label>
+                    <textarea name="bottleneck" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="今月のボトルネック">{{ report.bottleneck if report else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">📝 理由</label>
+                    <textarea name="reason" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="理由・補足">{{ report.reason if report else '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- 上長コメント（閲覧のみ） -->
+            {% if report and report.manager_comment %}
+            <div class="bg-purple-50 border-l-4 border-purple-500 rounded-lg p-4 mb-6">
+                <h3 class="text-sm font-bold text-purple-700 mb-1">💬 上長コメント（閲覧のみ）</h3>
+                <p class="text-sm text-gray-700">{{ report.manager_comment }}</p>
+            </div>
+            {% endif %}
+
+            <div class="flex justify-end space-x-3">
+                <a href="/reports" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">キャンセル</a>
+                <button type="submit"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 font-medium">
+                    {% if report and report.id is defined %}更新する{% else %}登録する{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function calcRate(num, den) {
+    if (!den || den === 0) return '-';
+    const r = (num / den * 100);
+    return r === Math.floor(r) ? r.toFixed(0) + '%' : r.toFixed(1) + '%';
+}
+
+function calcRates() {
+    const c = parseInt(document.getElementById('contact_count').value) || 0;
+    const a = parseInt(document.getElementById('appointment_count').value) || 0;
+    const m = parseInt(document.getElementById('meeting_count').value) || 0;
+    const ap = parseInt(document.getElementById('application_count').value) || 0;
+    const co = parseInt(document.getElementById('contract_count').value) || 0;
+
+    document.getElementById('rate_appointment').textContent = calcRate(a, c);
+    document.getElementById('rate_meeting').textContent = calcRate(m, a);
+    document.getElementById('rate_application').textContent = calcRate(ap, m);
+    document.getElementById('rate_contract').textContent = calcRate(co, ap);
+    document.getElementById('rate_overall').textContent = calcRate(co, c);
+}
+
+// 初期表示
+calcRates();
+</script>
+{% endblock %}

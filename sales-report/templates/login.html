@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}ログイン - 営業日報管理{% endblock %}
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">📊 営業日報管理</h1>
+                <p class="text-sm text-gray-500 mt-1">ログインしてください</p>
+            </div>
+
+            {% if error %}
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="/login">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
+                    <input type="email" name="email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="example@company.com">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">パスワード</label>
+                    <input type="password" name="password" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="パスワード">
+                </div>
+                <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                    ログイン
+                </button>
+            </form>
+
+            <div class="mt-6 p-4 bg-gray-50 rounded-md text-xs text-gray-500">
+                <p class="font-medium mb-1">テストアカウント：</p>
+                <p>管理者: admin@example.com / admin123</p>
+                <p>営業: hanako@example.com / user123</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

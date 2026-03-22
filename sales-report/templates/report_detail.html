@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}日報詳細 {{ report.report_date }} - 営業日報管理{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="{% if current_user.role == 'Admin' %}/admin/reports{% else %}/reports{% endif %}" class="text-sm text-blue-600 hover:text-blue-800">← 一覧に戻る</a>
+</div>
+
+<div class="bg-white rounded-lg shadow-sm">
+    <!-- ヘッダー -->
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div>
+            <h1 class="text-lg font-bold text-gray-800">{{ report.report_date }} の日報</h1>
+            <p class="text-sm text-gray-500">{{ report.user_name }}</p>
+        </div>
+        <div class="flex space-x-2">
+            {% if current_user.role == 'User' and report.user_id == current_user.user_id %}
+            <a href="/reports/{{ report.id }}/edit"
+               class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700">編集</a>
+            {% endif %}
+            {% if current_user.role == 'Admin' %}
+            <a href="/reports/{{ report.id }}/comment"
+               class="bg-purple-600 text-white px-3 py-1.5 rounded text-sm hover:bg-purple-700">コメント編集</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="p-6">
+        <!-- 数値実績 -->
+        <h2 class="text-sm font-bold text-gray-500 uppercase mb-3">数値実績</h2>
+        <div class="grid grid-cols-5 gap-3 mb-6">
+            <div class="bg-blue-50 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">接触数</div>
+                <div class="text-2xl font-bold text-blue-600">{{ report.contact_count }}</div>
+            </div>
+            <div class="bg-indigo-50 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">アポ数</div>
+                <div class="text-2xl font-bold text-indigo-600">{{ report.appointment_count }}</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">商談数</div>
+                <div class="text-2xl font-bold text-purple-600">{{ report.meeting_count }}</div>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">申込数</div>
+                <div class="text-2xl font-bold text-orange-600">{{ report.application_count }}</div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">成約数</div>
+                <div class="text-2xl font-bold text-green-600">{{ report.contract_count }}</div>
+            </div>
+        </div>
+
+        <!-- 率（パーセント） -->
+        <h2 class="text-sm font-bold text-gray-500 uppercase mb-3">転換率</h2>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div class="border rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">アポ率</div>
+                <div class="text-lg font-bold">{{ report.appointment_rate|format_rate }}</div>
+                <div class="text-xs text-gray-400">接触→アポ</div>
+            </div>
+            <div class="border rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">商談率</div>
+                <div class="text-lg font-bold">{{ report.meeting_rate|format_rate }}</div>
+                <div class="text-xs text-gray-400">アポ→商談</div>
+            </div>
+            <div class="border rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">申込率</div>
+                <div class="text-lg font-bold">{{ report.application_rate|format_rate }}</div>
+                <div class="text-xs text-gray-400">商談→申込</div>
+            </div>
+            <div class="border rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">成約率</div>
+                <div class="text-lg font-bold">{{ report.contract_rate|format_rate }}</div>
+                <div class="text-xs text-gray-400">申込→成約</div>
+            </div>
+            <div class="border-2 border-blue-200 rounded-lg p-3 text-center bg-blue-50">
+                <div class="text-xs text-blue-600 font-medium">接触→成約率</div>
+                <div class="text-lg font-bold text-blue-700">{{ report.overall_rate|format_rate }}</div>
+                <div class="text-xs text-blue-400">総合転換率</div>
+            </div>
+        </div>
+
+        <!-- テキスト項目 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-green-50 rounded-lg p-4">
+                <h3 class="text-sm font-bold text-green-700 mb-1">✅ 今日の成功</h3>
+                <p class="text-sm text-gray-700">{{ report.success_today or '—' }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4">
+                <h3 class="text-sm font-bold text-red-700 mb-1">❌ 今日の失敗</h3>
+                <p class="text-sm text-gray-700">{{ report.failure_today or '—' }}</p>
+            </div>
+            <div class="bg-yellow-50 rounded-lg p-4">
+                <h3 class="text-sm font-bold text-yellow-700 mb-1">🔧 明日の改善</h3>
+                <p class="text-sm text-gray-700">{{ report.improvement_tomorrow or '—' }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4">
+                <h3 class="text-sm font-bold text-blue-700 mb-1">📋 明日の行動予定</h3>
+                <p class="text-sm text-gray-700">{{ report.action_plan_tomorrow or '—' }}</p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-sm font-bold text-gray-700 mb-1">🎯 ボトルネック（月次改善目標）</h3>
+                <p class="text-sm text-gray-700">{{ report.bottleneck or '—' }}</p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-sm font-bold text-gray-700 mb-1">📝 理由</h3>
+                <p class="text-sm text-gray-700">{{ report.reason or '—' }}</p>
+            </div>
+        </div>
+
+        <!-- 上長コメント -->
+        {% if report.manager_comment %}
+        <div class="bg-purple-50 border-l-4 border-purple-500 rounded-lg p-4">
+            <h3 class="text-sm font-bold text-purple-700 mb-1">💬 上長コメント</h3>
+            <p class="text-sm text-gray-700">{{ report.manager_comment }}</p>
+        </div>
+        {% elif current_user.role == 'Admin' %}
+        <div class="bg-gray-50 border-l-4 border-gray-300 rounded-lg p-4">
+            <h3 class="text-sm font-bold text-gray-500 mb-1">💬 上長コメント</h3>
+            <p class="text-sm text-gray-400">コメントなし</p>
+            <a href="/reports/{{ report.id }}/comment" class="text-sm text-purple-600 hover:text-purple-800">コメントを追加</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

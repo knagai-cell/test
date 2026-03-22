@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}通知 - 営業日報管理{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold text-gray-800 mb-4">🔔 通知一覧</h1>
+
+{% if notifications|length == 0 %}
+<div class="bg-white rounded-lg shadow-sm p-12 text-center">
+    <div class="text-4xl mb-3">🔔</div>
+    <p class="text-gray-500">通知はありません</p>
+</div>
+{% else %}
+<div class="space-y-2">
+    {% for n in notifications %}
+    <a href="/notifications/{{ n.id }}/read"
+       class="block bg-white rounded-lg shadow-sm p-4 hover:bg-gray-50 transition {% if not n.is_read %}border-l-4 border-blue-500{% endif %}">
+        <div class="flex justify-between items-start">
+            <div class="flex-1">
+                <p class="text-sm {% if not n.is_read %}font-bold text-gray-800{% else %}text-gray-600{% endif %}">
+                    {{ n.message }}
+                </p>
+                <p class="text-xs text-gray-400 mt-1">
+                    日報: {{ n.report_date }} ・ {{ n.created_at }}
+                </p>
+            </div>
+            {% if not n.is_read %}
+            <span class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full ml-2">未読</span>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

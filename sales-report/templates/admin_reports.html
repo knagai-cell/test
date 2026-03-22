@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}管理画面 - 営業日報管理{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold text-gray-800 mb-4">🏢 管理画面 - 全日報一覧</h1>
+
+<!-- 絞り込みフィルター -->
+<div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+    <form method="GET" action="/admin/reports" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">担当者</label>
+            <select name="user_id" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+                <option value="">全員</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if filters.get('user_id', [None])[0] == u.id|string %}selected{% endif %}>
+                    {{ u.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">開始日</label>
+            <input type="date" name="date_from" value="{{ filters.get('date_from', [''])[0] }}"
+                   class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">終了日</label>
+            <input type="date" name="date_to" value="{{ filters.get('date_to', [''])[0] }}"
+                   class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">コメント</label>
+            <select name="has_comment" class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+                <option value="">すべて</option>
+                <option value="1" {% if filters.get('has_comment', [None])[0] == '1' %}selected{% endif %}>コメントあり</option>
+                <option value="0" {% if filters.get('has_comment', [None])[0] == '0' %}selected{% endif %}>コメントなし</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit"
+                    class="w-full bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">
+                🔍 絞り込み
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 結果件数 -->
+<p class="text-sm text-gray-500 mb-3">{{ reports|length }}件の日報</p>
+
+{% if reports|length == 0 %}
+<div class="bg-white rounded-lg shadow-sm p-12 text-center">
+    <p class="text-gray-500">条件に一致する日報はありません</p>
+</div>
+{% else %}
+
+<!-- PC表示 -->
+<div class="hidden lg:block bg-white rounded-lg shadow-sm overflow-x-auto">
+    <table class="w-full">
+        <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">担当者</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">日付</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">接触</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">アポ</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">商談</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">申込</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">成約</th>
+                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">アポ率</th>
+                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">商談率</th>
+                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">成約率</th>
+                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">総合</th>
+                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">コメント</th>
+                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">操作</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-sm">
+            {% for r in reports %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-3 py-2 font-medium text-gray-800">{{ r.user_name }}</td>
+                <td class="px-3 py-2 text-gray-600">{{ r.report_date }}</td>
+                <td class="px-3 py-2 text-right">{{ r.contact_count }}</td>
+                <td class="px-3 py-2 text-right">{{ r.appointment_count }}</td>
+                <td class="px-3 py-2 text-right">{{ r.meeting_count }}</td>
+                <td class="px-3 py-2 text-right">{{ r.application_count }}</td>
+                <td class="px-3 py-2 text-right">{{ r.contract_count }}</td>
+                <td class="px-3 py-2 text-center">
+                    <span class="rate-badge {% if r.appointment_rate and r.appointment_rate >= 30 %}rate-high{% elif r.appointment_rate and r.appointment_rate >= 15 %}rate-mid{% else %}rate-low{% endif %}">
+                        {{ r.appointment_rate|format_rate }}
+                    </span>
+                </td>
+                <td class="px-3 py-2 text-center">
+                    <span class="rate-badge {% if r.meeting_rate and r.meeting_rate >= 50 %}rate-high{% elif r.meeting_rate and r.meeting_rate >= 30 %}rate-mid{% else %}rate-low{% endif %}">
+                        {{ r.meeting_rate|format_rate }}
+                    </span>
+                </td>
+                <td class="px-3 py-2 text-center">
+                    <span class="rate-badge {% if r.contract_rate and r.contract_rate >= 50 %}rate-high{% elif r.contract_rate and r.contract_rate >= 25 %}rate-mid{% else %}rate-low{% endif %}">
+                        {{ r.contract_rate|format_rate }}
+                    </span>
+                </td>
+                <td class="px-3 py-2 text-center">
+                    <span class="font-medium text-blue-600">{{ r.overall_rate|format_rate }}</span>
+                </td>
+                <td class="px-3 py-2 text-center">
+                    {% if r.manager_comment %}
+                    <span class="text-green-600" title="{{ r.manager_comment }}">💬</span>
+                    {% else %}
+                    <span class="text-gray-300">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-2 text-center space-x-1">
+                    <a href="/reports/{{ r.id }}" class="text-blue-600 hover:text-blue-800">詳細</a>
+                    <a href="/reports/{{ r.id }}/comment" class="text-purple-600 hover:text-purple-800">コメント</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- モバイル表示 -->
+<div class="lg:hidden space-y-3">
+    {% for r in reports %}
+    <div class="bg-white rounded-lg shadow-sm p-4">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <span class="font-medium text-gray-800">{{ r.user_name }}</span>
+                <span class="text-sm text-gray-500 ml-2">{{ r.report_date }}</span>
+            </div>
+            {% if r.manager_comment %}
+            <span class="text-green-600">💬</span>
+            {% endif %}
+        </div>
+        <div class="grid grid-cols-5 gap-1 text-center text-xs mb-2">
+            <div><div class="text-gray-400">接触</div><div class="font-medium">{{ r.contact_count }}</div></div>
+            <div><div class="text-gray-400">アポ</div><div class="font-medium">{{ r.appointment_count }}</div></div>
+            <div><div class="text-gray-400">商談</div><div class="font-medium">{{ r.meeting_count }}</div></div>
+            <div><div class="text-gray-400">申込</div><div class="font-medium">{{ r.application_count }}</div></div>
+            <div><div class="text-gray-400">成約</div><div class="font-medium">{{ r.contract_count }}</div></div>
+        </div>
+        <div class="flex justify-between items-center">
+            <div class="flex space-x-1 flex-wrap">
+                <span class="rate-badge rate-mid text-xs">アポ {{ r.appointment_rate|format_rate }}</span>
+                <span class="rate-badge rate-mid text-xs">総合 {{ r.overall_rate|format_rate }}</span>
+            </div>
+            <div class="flex space-x-2 text-xs">
+                <a href="/reports/{{ r.id }}" class="text-blue-600">詳細</a>
+                <a href="/reports/{{ r.id }}/comment" class="text-purple-600">コメント</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

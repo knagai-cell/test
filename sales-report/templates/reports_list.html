@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}日報一覧 - 営業日報管理{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold text-gray-800">📋 日報一覧</h1>
+    <a href="/reports/new"
+       class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium">
+        ＋ 新規作成
+    </a>
+</div>
+
+{% if reports|length == 0 %}
+<div class="bg-white rounded-lg shadow-sm p-12 text-center">
+    <div class="text-4xl mb-3">📝</div>
+    <p class="text-gray-500 mb-4">まだ日報がありません</p>
+    <a href="/reports/new" class="text-blue-600 hover:text-blue-800 font-medium">最初の日報を作成する</a>
+</div>
+{% else %}
+
+<!-- PC表示：テーブル -->
+<div class="hidden md:block bg-white rounded-lg shadow-sm overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50 border-b">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日付</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">接触数</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">アポ数</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">商談数</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">申込数</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">成約数</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">アポ率</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">成約率</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">コメント</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">操作</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for r in reports %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ r.report_date }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-600">{{ r.contact_count }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-600">{{ r.appointment_count }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-600">{{ r.meeting_count }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-600">{{ r.application_count }}</td>
+                <td class="px-4 py-3 text-sm text-right text-gray-600">{{ r.contract_count }}</td>
+                <td class="px-4 py-3 text-sm text-center">
+                    <span class="rate-badge {% if r.appointment_rate and r.appointment_rate >= 30 %}rate-high{% elif r.appointment_rate and r.appointment_rate >= 15 %}rate-mid{% else %}rate-low{% endif %}">
+                        {{ r.appointment_rate|format_rate }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-sm text-center">
+                    <span class="rate-badge {% if r.contract_rate and r.contract_rate >= 50 %}rate-high{% elif r.contract_rate and r.contract_rate >= 25 %}rate-mid{% else %}rate-low{% endif %}">
+                        {{ r.contract_rate|format_rate }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-sm text-center">
+                    {% if r.manager_comment %}
+                    <span class="text-green-600" title="{{ r.manager_comment }}">💬</span>
+                    {% else %}
+                    <span class="text-gray-300">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-sm text-center space-x-2">
+                    <a href="/reports/{{ r.id }}" class="text-blue-600 hover:text-blue-800">詳細</a>
+                    <a href="/reports/{{ r.id }}/edit" class="text-green-600 hover:text-green-800">編集</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- モバイル表示：カード -->
+<div class="md:hidden space-y-3">
+    {% for r in reports %}
+    <div class="bg-white rounded-lg shadow-sm p-4">
+        <div class="flex justify-between items-start mb-2">
+            <span class="font-medium text-gray-800">{{ r.report_date }}</span>
+            {% if r.manager_comment %}
+            <span class="text-green-600">💬</span>
+            {% endif %}
+        </div>
+        <div class="grid grid-cols-5 gap-2 text-center text-xs mb-3">
+            <div>
+                <div class="text-gray-400">接触</div>
+                <div class="font-medium">{{ r.contact_count }}</div>
+            </div>
+            <div>
+                <div class="text-gray-400">アポ</div>
+                <div class="font-medium">{{ r.appointment_count }}</div>
+            </div>
+            <div>
+                <div class="text-gray-400">商談</div>
+                <div class="font-medium">{{ r.meeting_count }}</div>
+            </div>
+            <div>
+                <div class="text-gray-400">申込</div>
+                <div class="font-medium">{{ r.application_count }}</div>
+            </div>
+            <div>
+                <div class="text-gray-400">成約</div>
+                <div class="font-medium">{{ r.contract_count }}</div>
+            </div>
+        </div>
+        <div class="flex justify-between items-center">
+            <div class="flex space-x-2">
+                <span class="rate-badge {% if r.appointment_rate and r.appointment_rate >= 30 %}rate-high{% elif r.appointment_rate and r.appointment_rate >= 15 %}rate-mid{% else %}rate-low{% endif %}">
+                    アポ率 {{ r.appointment_rate|format_rate }}
+                </span>
+                <span class="rate-badge {% if r.contract_rate and r.contract_rate >= 50 %}rate-high{% elif r.contract_rate and r.contract_rate >= 25 %}rate-mid{% else %}rate-low{% endif %}">
+                    成約率 {{ r.contract_rate|format_rate }}
+                </span>
+            </div>
+            <div class="flex space-x-3 text-sm">
+                <a href="/reports/{{ r.id }}" class="text-blue-600">詳細</a>
+                <a href="/reports/{{ r.id }}/edit" class="text-green-600">編集</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}コメント編集 - 営業日報管理{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="/admin/reports" class="text-sm text-blue-600 hover:text-blue-800">← 管理画面に戻る</a>
+</div>
+
+<div class="bg-white rounded-lg shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h1 class="text-lg font-bold text-gray-800">💬 上長コメント編集</h1>
+        <p class="text-sm text-gray-500">{{ report.user_name }} / {{ report.report_date }}</p>
+    </div>
+
+    <div class="p-6">
+        <!-- 日報サマリー（閲覧用） -->
+        <div class="mb-6">
+            <h2 class="text-sm font-bold text-gray-500 uppercase mb-3">日報内容</h2>
+            <div class="grid grid-cols-5 gap-3 mb-4">
+                <div class="bg-blue-50 rounded p-2 text-center">
+                    <div class="text-xs text-gray-500">接触</div>
+                    <div class="text-lg font-bold">{{ report.contact_count }}</div>
+                </div>
+                <div class="bg-indigo-50 rounded p-2 text-center">
+                    <div class="text-xs text-gray-500">アポ</div>
+                    <div class="text-lg font-bold">{{ report.appointment_count }}</div>
+                </div>
+                <div class="bg-purple-50 rounded p-2 text-center">
+                    <div class="text-xs text-gray-500">商談</div>
+                    <div class="text-lg font-bold">{{ report.meeting_count }}</div>
+                </div>
+                <div class="bg-orange-50 rounded p-2 text-center">
+                    <div class="text-xs text-gray-500">申込</div>
+                    <div class="text-lg font-bold">{{ report.application_count }}</div>
+                </div>
+                <div class="bg-green-50 rounded p-2 text-center">
+                    <div class="text-xs text-gray-500">成約</div>
+                    <div class="text-lg font-bold">{{ report.contract_count }}</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                {% if report.success_today %}
+                <div class="bg-green-50 rounded p-3">
+                    <span class="font-medium text-green-700">✅ 成功:</span> {{ report.success_today }}
+                </div>
+                {% endif %}
+                {% if report.failure_today %}
+                <div class="bg-red-50 rounded p-3">
+                    <span class="font-medium text-red-700">❌ 失敗:</span> {{ report.failure_today }}
+                </div>
+                {% endif %}
+                {% if report.improvement_tomorrow %}
+                <div class="bg-yellow-50 rounded p-3">
+                    <span class="font-medium text-yellow-700">🔧 改善:</span> {{ report.improvement_tomorrow }}
+                </div>
+                {% endif %}
+                {% if report.action_plan_tomorrow %}
+                <div class="bg-blue-50 rounded p-3">
+                    <span class="font-medium text-blue-700">📋 行動予定:</span> {{ report.action_plan_tomorrow }}
+                </div>
+                {% endif %}
+                {% if report.bottleneck %}
+                <div class="bg-gray-50 rounded p-3">
+                    <span class="font-medium text-gray-700">🎯 ボトルネック:</span> {{ report.bottleneck }}
+                </div>
+                {% endif %}
+                {% if report.reason %}
+                <div class="bg-gray-50 rounded p-3">
+                    <span class="font-medium text-gray-700">📝 理由:</span> {{ report.reason }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- コメント入力フォーム -->
+        <form method="POST" action="/reports/{{ report.id }}/comment">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">上長コメント</label>
+                <textarea name="manager_comment" rows="5"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="コメントを入力してください...">{{ report.manager_comment or '' }}</textarea>
+                <p class="text-xs text-gray-400 mt-1">コメントを更新すると、担当者に通知が送信されます。</p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <a href="/reports/{{ report.id }}" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">キャンセル</a>
+                <button type="submit"
+                        class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 font-medium">
+                    コメントを保存
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
