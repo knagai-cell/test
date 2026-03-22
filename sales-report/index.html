@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>営業日報管理</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;background:#f5f6fa;color:#2c3e50;min-height:100vh}
+a{color:#2980b9;text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Layout */
+.app{max-width:800px;margin:0 auto;padding:0 12px 80px}
+
+/* Header */
+.header{background:linear-gradient(135deg,#2c3e50,#3498db);padding:16px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.header h1{font-size:1.1rem;letter-spacing:.08em}
+.header-right{display:flex;align-items:center;gap:12px;font-size:.8rem}
+.header-right .user-name{opacity:.9}
+.badge{background:#e74c3c;color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem;font-weight:700;margin-left:2px}
+
+/* Nav */
+.nav{display:flex;gap:6px;padding:12px 0;flex-wrap:wrap}
+.nav-btn{padding:8px 16px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;background:#fff;color:#2c3e50;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:all .15s}
+.nav-btn:hover{background:#ecf0f1}
+.nav-btn.active{background:#3498db;color:#fff}
+
+/* Buttons */
+.btn{display:inline-block;padding:10px 20px;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:#3498db;color:#fff}
+.btn-primary:hover{background:#2980b9}
+.btn-danger{background:#e74c3c;color:#fff}
+.btn-danger:hover{background:#c0392b}
+.btn-outline{background:#fff;color:#3498db;border:1.5px solid #3498db}
+.btn-outline:hover{background:#ebf5fb}
+.btn-sm{padding:6px 12px;font-size:.75rem}
+.btn-block{display:block;width:100%;text-align:center}
+
+/* Card */
+.card{background:#fff;border-radius:12px;padding:20px;margin-top:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-title{font-size:.95rem;font-weight:700;margin-bottom:12px;color:#2c3e50;display:flex;align-items:center;gap:8px}
+
+/* Login */
+.login-wrap{max-width:380px;margin:60px auto 0}
+.login-wrap h2{text-align:center;margin-bottom:20px;color:#2c3e50}
+
+/* Form */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:.78rem;font-weight:600;color:#555;margin-bottom:4px}
+.form-control{width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:.85rem;font-family:inherit;outline:none;transition:border .15s}
+.form-control:focus{border-color:#3498db}
+textarea.form-control{min-height:70px;resize:vertical}
+select.form-control{appearance:auto}
+
+/* Table */
+.table-wrap{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee}
+th{background:#f8f9fa;font-weight:700;color:#555;font-size:.72rem;white-space:nowrap}
+td{color:#2c3e50}
+tr:hover td{background:#f0f6ff}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* Rate badge */
+.rate{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.72rem;font-weight:600}
+.rate-high{background:#d5f5e3;color:#1e8449}
+.rate-mid{background:#fef9e7;color:#b7950b}
+.rate-low{background:#fdedec;color:#c0392b}
+
+/* Notification */
+.notif-item{padding:12px;border-bottom:1px solid #eee;cursor:pointer;transition:background .1s}
+.notif-item:hover{background:#f0f6ff}
+.notif-item.unread{border-left:3px solid #3498db;background:#f7fbff}
+.notif-date{font-size:.7rem;color:#999;margin-top:4px}
+
+/* Detail */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:.85rem}
+.detail-label{font-size:.72rem;color:#888;font-weight:600}
+.detail-value{font-weight:600;margin-bottom:8px}
+.detail-full{grid-column:1/-1}
+.comment-box{background:#fef9e7;border-left:3px solid #f1c40f;padding:12px;border-radius:0 8px 8px 0;margin-top:8px;font-size:.85rem}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.filter-bar .form-group{margin-bottom:0;flex:1;min-width:120px}
+.filter-bar .form-control{padding:7px 10px;font-size:.78rem}
+
+/* Alert */
+.alert{padding:12px 16px;border-radius:8px;font-size:.82rem;margin-top:12px}
+.alert-error{background:#fdedec;color:#c0392b;border:1px solid #f5c6cb}
+.alert-success{background:#d5f5e3;color:#1e8449;border:1px solid #a9dfbf}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ─── Data / State ──────────────────────────────
+const USERS = [
+  {id:1, name:"管理 太郎", email:"admin@example.com", password:"admin123", role:"Admin"},
+  {id:2, name:"花子", email:"hanako@example.com", password:"user123", role:"User"},
+  {id:3, name:"次郎", email:"jiro@example.com", password:"user123", role:"User"},
+  {id:4, name:"美咲", email:"misaki@example.com", password:"user123", role:"User"},
+];
+
+let currentUser = null;
+let currentPage = "login";
+let pageArg = null;
+
+function getReports() {
+  return JSON.parse(localStorage.getItem("sales_reports") || "[]");
+}
+function saveReports(reports) {
+  localStorage.setItem("sales_reports", JSON.stringify(reports));
+}
+function getNotifications() {
+  return JSON.parse(localStorage.getItem("sales_notifications") || "[]");
+}
+function saveNotifications(n) {
+  localStorage.setItem("sales_notifications", JSON.stringify(n));
+}
+
+function initSeedData() {
+  if (localStorage.getItem("sales_seeded")) return;
+  const today = new Date();
+  const reports = [];
+  let rid = 1;
+  [2,3,4].forEach(uid => {
+    for (let d = 0; d < 5; d++) {
+      const dt = new Date(today);
+      dt.setDate(dt.getDate() - d);
+      const ds = dt.toISOString().slice(0,10);
+      const c = 10 + Math.floor(Math.random()*30);
+      const a = Math.floor(c * (0.2 + Math.random()*0.3));
+      const m = Math.floor(a * (0.3 + Math.random()*0.4));
+      const ap = Math.floor(m * (0.2 + Math.random()*0.3));
+      const ct = Math.floor(ap * (0.3 + Math.random()*0.5));
+      reports.push({
+        id: rid++, user_id: uid, report_date: ds,
+        contact_count: c, appointment_count: a, meeting_count: m,
+        application_count: ap, contract_count: ct,
+        success_today: "新規顧客との良い関係構築ができた",
+        failure_today: "提案資料の準備不足",
+        improvement_tomorrow: "事前準備を徹底する",
+        action_plan_tomorrow: "午前中にアポ5件実施",
+        bottleneck: "決裁者へのアプローチが課題",
+        reason: "競合との差別化ポイントの明確化が必要",
+        manager_comment: d === 0 ? "" : "よく頑張っています。引き続きお願いします。",
+        created_at: ds, updated_at: ds,
+      });
+    }
+  });
+  saveReports(reports);
+  saveNotifications([]);
+  localStorage.setItem("sales_seeded", "1");
+}
+
+// ─── Helpers ───────────────────────────────────
+function calcRate(n, d) {
+  if (!d || d <= 0) return null;
+  return Math.round(n / d * 1000) / 10;
+}
+function fmtRate(v) {
+  if (v === null || v === undefined) return "-";
+  return v === Math.floor(v) ? v + "%" : v.toFixed(1) + "%";
+}
+function rateClass(v) {
+  if (v === null || v === undefined) return "";
+  if (v >= 30) return "rate-high";
+  if (v >= 15) return "rate-mid";
+  return "rate-low";
+}
+function userName(uid) {
+  const u = USERS.find(x => x.id === uid);
+  return u ? u.name : "不明";
+}
+function esc(s) {
+  if (!s) return "";
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+function nextId(arr) {
+  return arr.length ? Math.max(...arr.map(x => x.id)) + 1 : 1;
+}
+function unreadCount() {
+  if (!currentUser) return 0;
+  return getNotifications().filter(n => n.user_id === currentUser.id && !n.is_read).length;
+}
+
+// ─── Router ────────────────────────────────────
+function navigate(page, arg) {
+  currentPage = page;
+  pageArg = arg;
+  render();
+}
+
+// ─── Render ────────────────────────────────────
+function render() {
+  const app = document.getElementById("app");
+  if (!currentUser) {
+    app.innerHTML = renderLogin();
+    return;
+  }
+  let content = "";
+  switch (currentPage) {
+    case "reports": content = renderReportsList(); break;
+    case "report_new": content = renderReportForm(null); break;
+    case "report_edit": content = renderReportForm(pageArg); break;
+    case "report_detail": content = renderReportDetail(pageArg); break;
+    case "admin_reports": content = renderAdminReports(); break;
+    case "admin_comment": content = renderAdminComment(pageArg); break;
+    case "notifications": content = renderNotifications(); break;
+    default:
+      if (currentUser.role === "Admin") { currentPage = "admin_reports"; content = renderAdminReports(); }
+      else { currentPage = "reports"; content = renderReportsList(); }
+  }
+  const uc = unreadCount();
+  app.innerHTML = `
+    <div class="header">
+      <h1>営業日報管理</h1>
+      <div class="header-right">
+        <span class="user-name">${esc(currentUser.name)}（${currentUser.role === "Admin" ? "管理者" : "営業"}）</span>
+        <a href="#" onclick="doLogout();return false" style="color:#fff;font-size:.78rem">ログアウト</a>
+      </div>
+    </div>
+    <div class="app">
+      <div class="nav">
+        ${currentUser.role === "Admin" ? `
+          <button class="nav-btn ${currentPage==='admin_reports'?'active':''}" onclick="navigate('admin_reports')">日報一覧（管理）</button>
+        ` : `
+          <button class="nav-btn ${currentPage==='reports'?'active':''}" onclick="navigate('reports')">日報一覧</button>
+          <button class="nav-btn ${currentPage==='report_new'?'active':''}" onclick="navigate('report_new')">新規作成</button>
+        `}
+        <button class="nav-btn ${currentPage==='notifications'?'active':''}" onclick="navigate('notifications')">
+          通知${uc > 0 ? '<span class="badge">'+uc+'</span>' : ''}
+        </button>
+      </div>
+      ${content}
+    </div>`;
+}
+
+// ─── Login ─────────────────────────────────────
+function renderLogin() {
+  return `
+  <div class="login-wrap">
+    <div class="card">
+      <h2>営業日報管理</h2>
+      <div id="loginError"></div>
+      <form onsubmit="doLogin(event)">
+        <div class="form-group">
+          <label>メールアドレス</label>
+          <input class="form-control" id="loginEmail" type="email" placeholder="admin@example.com" required/>
+        </div>
+        <div class="form-group">
+          <label>パスワード</label>
+          <input class="form-control" id="loginPass" type="password" placeholder="パスワード" required/>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" style="margin-top:8px">ログイン</button>
+      </form>
+      <div style="margin-top:16px;font-size:.75rem;color:#888;line-height:1.8">
+        <b>テストアカウント:</b><br>
+        管理者: admin@example.com / admin123<br>
+        営業: hanako@example.com / user123<br>
+        営業: jiro@example.com / user123<br>
+        営業: misaki@example.com / user123
+      </div>
+    </div>
+  </div>`;
+}
+
+function doLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value.trim();
+  const pass = document.getElementById("loginPass").value;
+  const user = USERS.find(u => u.email === email && u.password === pass);
+  if (!user) {
+    document.getElementById("loginError").innerHTML = '<div class="alert alert-error">メールアドレスまたはパスワードが正しくありません</div>';
+    return;
+  }
+  currentUser = user;
+  currentPage = user.role === "Admin" ? "admin_reports" : "reports";
+  render();
+}
+
+function doLogout() {
+  currentUser = null;
+  currentPage = "login";
+  render();
+}
+
+// ─── Reports List (User) ──────────────────────
+function renderReportsList() {
+  const reports = getReports().filter(r => r.user_id === currentUser.id).sort((a,b) => b.report_date.localeCompare(a.report_date));
+  if (!reports.length) return '<div class="card"><p style="text-align:center;color:#999;padding:20px">日報がありません。「新規作成」から登録してください。</p></div>';
+  return `
+    <div class="card">
+      <div class="card-title">日報一覧</div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>日付</th><th class="num">接触</th><th class="num">アポ</th><th class="num">商談</th><th class="num">申込</th><th class="num">成約</th><th class="num">成約率</th><th>コメント</th><th></th></tr>
+          ${reports.map(r => {
+            const ov = calcRate(r.contract_count, r.contact_count);
+            return `<tr>
+              <td>${esc(r.report_date)}</td>
+              <td class="num">${r.contact_count}</td>
+              <td class="num">${r.appointment_count}</td>
+              <td class="num">${r.meeting_count}</td>
+              <td class="num">${r.application_count}</td>
+              <td class="num">${r.contract_count}</td>
+              <td class="num"><span class="rate ${rateClass(ov)}">${fmtRate(ov)}</span></td>
+              <td>${r.manager_comment ? '有' : '-'}</td>
+              <td><a href="#" onclick="navigate('report_detail',${r.id});return false">詳細</a></td>
+            </tr>`;
+          }).join("")}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ─── Report Form (New / Edit) ─────────────────
+function renderReportForm(reportId) {
+  const r = reportId ? getReports().find(x => x.id === reportId) : null;
+  const title = r ? "日報編集" : "新規日報作成";
+  const today = new Date().toISOString().slice(0,10);
+  return `
+    <div class="card">
+      <div class="card-title">${title}</div>
+      <div id="formError"></div>
+      <form onsubmit="doSaveReport(event, ${reportId || 'null'})">
+        <div class="form-group">
+          <label>日付 *</label>
+          <input class="form-control" type="date" id="f_date" value="${r ? r.report_date : today}" required/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px">
+          <div class="form-group"><label>当日接触数</label><input class="form-control" type="number" min="0" id="f_contact" value="${r ? r.contact_count : 0}" oninput="calcRates()"/></div>
+          <div class="form-group"><label>アポ数</label><input class="form-control" type="number" min="0" id="f_appo" value="${r ? r.appointment_count : 0}" oninput="calcRates()"/></div>
+          <div class="form-group"><label>商談数</label><input class="form-control" type="number" min="0" id="f_meeting" value="${r ? r.meeting_count : 0}" oninput="calcRates()"/></div>
+          <div class="form-group"><label>申込数</label><input class="form-control" type="number" min="0" id="f_app" value="${r ? r.application_count : 0}" oninput="calcRates()"/></div>
+          <div class="form-group"><label>成約数</label><input class="form-control" type="number" min="0" id="f_contract" value="${r ? r.contract_count : 0}" oninput="calcRates()"/></div>
+        </div>
+        <div id="ratesDisplay" style="background:#f0f6ff;border-radius:8px;padding:10px 14px;margin:8px 0 14px;font-size:.78rem;display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
+        <div class="form-group"><label>本日の成功点</label><textarea class="form-control" id="f_success">${esc(r?.success_today||"")}</textarea></div>
+        <div class="form-group"><label>本日の失敗点</label><textarea class="form-control" id="f_failure">${esc(r?.failure_today||"")}</textarea></div>
+        <div class="form-group"><label>明日の改善点</label><textarea class="form-control" id="f_improve">${esc(r?.improvement_tomorrow||"")}</textarea></div>
+        <div class="form-group"><label>明日のアクションプラン</label><textarea class="form-control" id="f_action">${esc(r?.action_plan_tomorrow||"")}</textarea></div>
+        <div class="form-group"><label>ボトルネック</label><textarea class="form-control" id="f_bottleneck">${esc(r?.bottleneck||"")}</textarea></div>
+        <div class="form-group"><label>理由・背景</label><textarea class="form-control" id="f_reason">${esc(r?.reason||"")}</textarea></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-primary" type="submit">${r ? "更新" : "登録"}</button>
+          <button class="btn btn-outline" type="button" onclick="navigate('reports')">キャンセル</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function calcRates() {
+  const c = parseInt(document.getElementById("f_contact").value)||0;
+  const a = parseInt(document.getElementById("f_appo").value)||0;
+  const m = parseInt(document.getElementById("f_meeting").value)||0;
+  const ap = parseInt(document.getElementById("f_app").value)||0;
+  const ct = parseInt(document.getElementById("f_contract").value)||0;
+  const el = document.getElementById("ratesDisplay");
+  el.innerHTML = `
+    <div>アポ率: <b>${fmtRate(calcRate(a,c))}</b></div>
+    <div>商談率: <b>${fmtRate(calcRate(m,a))}</b></div>
+    <div>申込率: <b>${fmtRate(calcRate(ap,m))}</b></div>
+    <div>成約率: <b>${fmtRate(calcRate(ct,ap))}</b></div>
+    <div>総合成約率: <b>${fmtRate(calcRate(ct,c))}</b></div>
+  `;
+}
+
+function doSaveReport(e, editId) {
+  e.preventDefault();
+  const date = document.getElementById("f_date").value;
+  if (!date) { document.getElementById("formError").innerHTML='<div class="alert alert-error">日付は必須です</div>'; return; }
+
+  const reports = getReports();
+  const data = {
+    report_date: date,
+    contact_count: parseInt(document.getElementById("f_contact").value)||0,
+    appointment_count: parseInt(document.getElementById("f_appo").value)||0,
+    meeting_count: parseInt(document.getElementById("f_meeting").value)||0,
+    application_count: parseInt(document.getElementById("f_app").value)||0,
+    contract_count: parseInt(document.getElementById("f_contract").value)||0,
+    success_today: document.getElementById("f_success").value,
+    failure_today: document.getElementById("f_failure").value,
+    improvement_tomorrow: document.getElementById("f_improve").value,
+    action_plan_tomorrow: document.getElementById("f_action").value,
+    bottleneck: document.getElementById("f_bottleneck").value,
+    reason: document.getElementById("f_reason").value,
+    updated_at: new Date().toISOString().slice(0,10),
+  };
+
+  if (editId) {
+    const idx = reports.findIndex(r => r.id === editId);
+    if (idx >= 0) { Object.assign(reports[idx], data); }
+  } else {
+    const dup = reports.find(r => r.user_id === currentUser.id && r.report_date === date);
+    if (dup) { document.getElementById("formError").innerHTML='<div class="alert alert-error">この日付の日報は既に存在します</div>'; return; }
+    data.id = nextId(reports);
+    data.user_id = currentUser.id;
+    data.manager_comment = "";
+    data.created_at = new Date().toISOString().slice(0,10);
+    reports.push(data);
+  }
+  saveReports(reports);
+  navigate(editId ? "report_detail" : "reports", editId);
+}
+
+// ─── Report Detail ────────────────────────────
+function renderReportDetail(id) {
+  const r = getReports().find(x => x.id === id);
+  if (!r) return '<div class="card"><p>日報が見つかりません</p></div>';
+  const ar = calcRate(r.appointment_count, r.contact_count);
+  const mr = calcRate(r.meeting_count, r.appointment_count);
+  const apr = calcRate(r.application_count, r.meeting_count);
+  const cr = calcRate(r.contract_count, r.application_count);
+  const ov = calcRate(r.contract_count, r.contact_count);
+  return `
+    <div class="card">
+      <div class="card-title">日報詳細 - ${esc(r.report_date)}</div>
+      <div style="font-size:.82rem;color:#888;margin-bottom:12px">担当: ${esc(userName(r.user_id))}</div>
+      <div class="detail-grid">
+        <div><div class="detail-label">接触数</div><div class="detail-value">${r.contact_count}</div></div>
+        <div><div class="detail-label">アポ数</div><div class="detail-value">${r.appointment_count} <span class="rate ${rateClass(ar)}">${fmtRate(ar)}</span></div></div>
+        <div><div class="detail-label">商談数</div><div class="detail-value">${r.meeting_count} <span class="rate ${rateClass(mr)}">${fmtRate(mr)}</span></div></div>
+        <div><div class="detail-label">申込数</div><div class="detail-value">${r.application_count} <span class="rate ${rateClass(apr)}">${fmtRate(apr)}</span></div></div>
+        <div><div class="detail-label">成約数</div><div class="detail-value">${r.contract_count} <span class="rate ${rateClass(cr)}">${fmtRate(cr)}</span></div></div>
+        <div><div class="detail-label">総合成約率</div><div class="detail-value"><span class="rate ${rateClass(ov)}">${fmtRate(ov)}</span></div></div>
+        <div class="detail-full"><div class="detail-label">本日の成功点</div><div class="detail-value">${esc(r.success_today)||"-"}</div></div>
+        <div class="detail-full"><div class="detail-label">本日の失敗点</div><div class="detail-value">${esc(r.failure_today)||"-"}</div></div>
+        <div class="detail-full"><div class="detail-label">明日の改善点</div><div class="detail-value">${esc(r.improvement_tomorrow)||"-"}</div></div>
+        <div class="detail-full"><div class="detail-label">明日のアクションプラン</div><div class="detail-value">${esc(r.action_plan_tomorrow)||"-"}</div></div>
+        <div class="detail-full"><div class="detail-label">ボトルネック</div><div class="detail-value">${esc(r.bottleneck)||"-"}</div></div>
+        <div class="detail-full"><div class="detail-label">理由・背景</div><div class="detail-value">${esc(r.reason)||"-"}</div></div>
+      </div>
+      ${r.manager_comment ? `<div class="comment-box"><b>上長コメント:</b><br>${esc(r.manager_comment)}</div>` : ""}
+      <div style="margin-top:16px;display:flex;gap:8px">
+        ${currentUser.role !== "Admin" && r.user_id === currentUser.id ? `<button class="btn btn-outline btn-sm" onclick="navigate('report_edit',${r.id})">編集</button>` : ""}
+        ${currentUser.role === "Admin" ? `<button class="btn btn-primary btn-sm" onclick="navigate('admin_comment',${r.id})">コメント</button>` : ""}
+        <button class="btn btn-outline btn-sm" onclick="navigate('${currentUser.role==="Admin"?"admin_reports":"reports"}')">戻る</button>
+      </div>
+    </div>`;
+}
+
+// ─── Admin Reports ────────────────────────────
+function renderAdminReports() {
+  let reports = getReports().sort((a,b) => b.report_date.localeCompare(a.report_date));
+  const salesUsers = USERS.filter(u => u.role === "User");
+  return `
+    <div class="card">
+      <div class="card-title">日報一覧（管理者）</div>
+      <div class="filter-bar" style="margin-bottom:12px">
+        <div class="form-group">
+          <label>担当者</label>
+          <select class="form-control" id="af_user" onchange="render()">
+            <option value="">全員</option>
+            ${salesUsers.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join("")}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>日付（から）</label>
+          <input class="form-control" type="date" id="af_from" onchange="render()"/>
+        </div>
+        <div class="form-group">
+          <label>日付（まで）</label>
+          <input class="form-control" type="date" id="af_to" onchange="render()"/>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>日付</th><th>担当</th><th class="num">接触</th><th class="num">アポ</th><th class="num">商談</th><th class="num">申込</th><th class="num">成約</th><th class="num">成約率</th><th>コメント</th><th></th></tr>
+          <tbody id="adminTbody"></tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// Post-render hook to apply filters and populate tbody
+function postRender() {
+  if (currentPage === "admin_reports") {
+    const uf = document.getElementById("af_user");
+    const df = document.getElementById("af_from");
+    const dt = document.getElementById("af_to");
+    if (!uf) return;
+    let reports = getReports().sort((a,b) => b.report_date.localeCompare(a.report_date));
+    const uv = uf.value;
+    if (uv) reports = reports.filter(r => r.user_id === parseInt(uv));
+    const fv = df.value;
+    if (fv) reports = reports.filter(r => r.report_date >= fv);
+    const tv = dt.value;
+    if (tv) reports = reports.filter(r => r.report_date <= tv);
+    const tbody = document.getElementById("adminTbody");
+    if (tbody) {
+      tbody.innerHTML = reports.map(r => {
+        const ov = calcRate(r.contract_count, r.contact_count);
+        return `<tr>
+          <td>${esc(r.report_date)}</td>
+          <td>${esc(userName(r.user_id))}</td>
+          <td class="num">${r.contact_count}</td>
+          <td class="num">${r.appointment_count}</td>
+          <td class="num">${r.meeting_count}</td>
+          <td class="num">${r.application_count}</td>
+          <td class="num">${r.contract_count}</td>
+          <td class="num"><span class="rate ${rateClass(ov)}">${fmtRate(ov)}</span></td>
+          <td>${r.manager_comment ? '有' : '-'}</td>
+          <td><a href="#" onclick="navigate('report_detail',${r.id});return false">詳細</a> | <a href="#" onclick="navigate('admin_comment',${r.id});return false">コメント</a></td>
+        </tr>`;
+      }).join("");
+    }
+  }
+  if (currentPage === "report_new" || currentPage === "report_edit") {
+    calcRates();
+  }
+}
+
+// Wrap render to call postRender
+const _origRender = render;
+render = function() {
+  _origRender();
+  setTimeout(postRender, 0);
+};
+
+// ─── Admin Comment ────────────────────────────
+function renderAdminComment(id) {
+  const r = getReports().find(x => x.id === id);
+  if (!r) return '<div class="card"><p>日報が見つかりません</p></div>';
+  return `
+    <div class="card">
+      <div class="card-title">コメント - ${esc(userName(r.user_id))} ${esc(r.report_date)}</div>
+      <div style="font-size:.82rem;margin-bottom:12px;color:#555">
+        接触:${r.contact_count} → アポ:${r.appointment_count} → 商談:${r.meeting_count} → 申込:${r.application_count} → 成約:${r.contract_count}
+        ｜総合成約率: <b>${fmtRate(calcRate(r.contract_count, r.contact_count))}</b>
+      </div>
+      ${r.success_today ? `<div style="font-size:.82rem;margin-bottom:4px"><b>成功点:</b> ${esc(r.success_today)}</div>` : ""}
+      ${r.failure_today ? `<div style="font-size:.82rem;margin-bottom:4px"><b>失敗点:</b> ${esc(r.failure_today)}</div>` : ""}
+      ${r.bottleneck ? `<div style="font-size:.82rem;margin-bottom:12px"><b>ボトルネック:</b> ${esc(r.bottleneck)}</div>` : ""}
+      <form onsubmit="doSaveComment(event, ${id})">
+        <div class="form-group">
+          <label>上長コメント</label>
+          <textarea class="form-control" id="f_comment" rows="4">${esc(r.manager_comment||"")}</textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-primary" type="submit">保存</button>
+          <button class="btn btn-outline" type="button" onclick="navigate('report_detail',${id})">戻る</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function doSaveComment(e, id) {
+  e.preventDefault();
+  const comment = document.getElementById("f_comment").value.trim();
+  const reports = getReports();
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+  const oldComment = r.manager_comment || "";
+  r.manager_comment = comment;
+  r.updated_at = new Date().toISOString().slice(0,10);
+  saveReports(reports);
+
+  // Create notification if comment changed and not empty
+  if (comment && comment !== oldComment) {
+    const notifs = getNotifications();
+    notifs.push({
+      id: nextId(notifs),
+      user_id: r.user_id,
+      report_id: r.id,
+      message: "上長からコメントが届きました：" + comment,
+      is_read: false,
+      created_at: new Date().toISOString().slice(0,19),
+    });
+    saveNotifications(notifs);
+  }
+  navigate("report_detail", id);
+}
+
+// ─── Notifications ────────────────────────────
+function renderNotifications() {
+  const notifs = getNotifications().filter(n => n.user_id === currentUser.id).sort((a,b) => b.created_at.localeCompare(a.created_at));
+  if (!notifs.length) return '<div class="card"><p style="text-align:center;color:#999;padding:20px">通知はありません</p></div>';
+  return `
+    <div class="card">
+      <div class="card-title">通知</div>
+      ${notifs.map(n => `
+        <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="readNotif(${n.id}, ${n.report_id})">
+          <div style="font-size:.82rem">${esc(n.message)}</div>
+          <div class="notif-date">${esc(n.created_at)}</div>
+        </div>
+      `).join("")}
+    </div>`;
+}
+
+function readNotif(nid, reportId) {
+  const notifs = getNotifications();
+  const n = notifs.find(x => x.id === nid);
+  if (n) { n.is_read = true; saveNotifications(notifs); }
+  navigate("report_detail", reportId);
+}
+
+// ─── Init ──────────────────────────────────────
+initSeedData();
+render();
+</script>
+</body>
+</html>
