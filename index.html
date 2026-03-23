@@ -3,853 +3,897 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 着物試着</title>
+  <title>Z900RS カスタムシミュレーター | Bike Custom Demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
-    /* ── Reset & Base ─────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-      background: #faf7f4;
-      color: #2c2c2c;
-      min-height: 100vh;
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      overflow: hidden;
+      height: 100vh;
     }
 
-    /* ── Layout ───────────────────────────────────── */
-    .app {
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 0 0 80px;
-    }
-
-    /* ── Header ───────────────────────────────────── */
-    .header {
-      background: linear-gradient(135deg, #8b1c3f 0%, #5c1230 100%);
-      padding: 20px 20px 24px;
-      text-align: center;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      box-shadow: 0 2px 12px rgba(139,28,63,0.3);
-    }
-    .header h1 {
-      color: #fff;
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-    }
-    .header p {
-      color: rgba(255,255,255,0.8);
-      font-size: 0.75rem;
-      margin-top: 4px;
-      letter-spacing: 0.05em;
-    }
-
-    /* ── Section Card ─────────────────────────────── */
-    .section {
-      margin: 16px 16px 0;
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .section-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: #8b1c3f;
-      text-transform: uppercase;
-      margin-bottom: 12px;
+    /* ── Header ── */
+    header {
+      height: 60px;
+      background: linear-gradient(90deg, #0d0d0d, #1a1a1a);
+      border-bottom: 1px solid #2a2a2a;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #66BB6A, #43A047);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 18px; color: #fff;
+    }
+    .logo-text {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      color: #ccc;
+    }
+    .logo-text span {
+      color: #66BB6A;
+      font-weight: 700;
+    }
+    .header-badge {
+      font-size: 11px;
+      color: #888;
+      background: #1e1e1e;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid #333;
+      letter-spacing: 1px;
+    }
+
+    /* ── Main Layout ── */
+    .main {
+      display: flex;
+      height: calc(100vh - 60px);
+    }
+
+    /* ── Left Panel ── */
+    .panel-left {
+      width: 380px;
+      min-width: 380px;
+      background: #111;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .panel-left::-webkit-scrollbar { width: 4px; }
+    .panel-left::-webkit-scrollbar-track { background: #111; }
+    .panel-left::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .panel-header {
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .panel-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .panel-header p {
+      font-size: 12px;
+      color: #666;
+    }
+
+    /* ── Category ── */
+    .category {
+      padding: 20px 24px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .category-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #66BB6A;
+      margin-bottom: 12px;
+    }
+    .part-options {
+      display: flex;
+      flex-direction: column;
       gap: 8px;
     }
-    .section-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #f0e8ec;
+    .part-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #1a1a1a;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .part-option:hover {
+      background: #222;
+      border-color: #333;
+    }
+    .part-option.selected {
+      background: #1a2e1a;
+      border-color: #66BB6A;
+    }
+    .part-option .part-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .part-option .part-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+    }
+    .part-option .part-desc {
+      font-size: 11px;
+      color: #777;
+    }
+    .part-option .part-price {
+      font-size: 14px;
+      font-weight: 700;
+      color: #66BB6A;
+      white-space: nowrap;
+    }
+    .part-option.selected .part-name::before {
+      content: '✓ ';
+      color: #66BB6A;
     }
 
-    /* ── API Key Input ────────────────────────────── */
-    .api-key-input {
+    /* ── Summary ── */
+    .summary {
+      margin-top: auto;
+      padding: 20px 24px;
+      background: #0d0d0d;
+      border-top: 1px solid #222;
+    }
+    .summary-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+    .summary-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    .summary-item .label { color: #999; }
+    .summary-item .value { color: #fff; font-weight: 500; }
+
+    .summary-divider {
+      border: none;
+      border-top: 1px solid #2a2a2a;
+      margin: 12px 0;
+    }
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .summary-total .label {
+      font-size: 14px;
+      color: #ccc;
+      font-weight: 500;
+    }
+    .summary-total .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #66BB6A;
+    }
+
+    .cta-btn {
       width: 100%;
-      padding: 10px 14px;
-      border: 1.5px solid #e0d0d8;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-family: monospace;
-      color: #2c2c2c;
-      background: #fdf9fb;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .api-key-input:focus { border-color: #8b1c3f; background: #fff; }
-    .api-key-hint {
-      font-size: 0.7rem;
-      color: #999;
-      margin-top: 6px;
-    }
-
-    /* ── Photo Upload ─────────────────────────────── */
-    .upload-zone {
-      border: 2px dashed #d4b8c4;
-      border-radius: 14px;
-      padding: 28px 20px;
-      text-align: center;
+      padding: 16px;
+      background: linear-gradient(135deg, #66BB6A, #43A047);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
       cursor: pointer;
-      background: #fdf9fb;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      font-family: 'Noto Sans JP', sans-serif;
     }
-    .upload-zone:hover, .upload-zone.drag-over {
-      border-color: #8b1c3f;
-      background: #fdf0f5;
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(102, 187, 106, 0.3);
     }
-    .upload-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
+    .cta-btn:active {
+      transform: translateY(0);
     }
-    .upload-icon {
-      font-size: 2.5rem;
-      margin-bottom: 8px;
+    .cta-sub {
       display: block;
-    }
-    .upload-text {
-      font-size: 0.85rem;
-      color: #8b1c3f;
-      font-weight: 600;
-    }
-    .upload-sub {
-      font-size: 0.7rem;
-      color: #aaa;
-      margin-top: 4px;
+      text-align: center;
+      margin-top: 8px;
+      font-size: 11px;
+      color: #555;
     }
 
-    /* Photo preview */
-    .photo-preview {
+    /* ── 3D Viewer ── */
+    .viewer {
+      flex: 1;
       position: relative;
-      border-radius: 14px;
-      overflow: hidden;
-      aspect-ratio: 3/4;
-      background: #f0e8ec;
+      background: radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 70%);
     }
-    .photo-preview img {
+    #canvas3d {
       width: 100%;
       height: 100%;
-      object-fit: cover;
       display: block;
     }
-    .photo-preview .change-btn {
+    .viewer-hint {
       position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(139,28,63,0.85);
-      color: #fff;
-      border: none;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: #444;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 16px;
       border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      font-weight: 600;
+      pointer-events: none;
     }
-    .photo-preview input[type="file"] {
+    .viewer-model-label {
       position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
+      top: 24px;
+      right: 32px;
+      text-align: right;
+    }
+    .viewer-model-label h3 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .viewer-model-label p {
+      font-size: 12px;
+      color: #555;
+      letter-spacing: 2px;
     }
 
-    /* ── Kimono Selector ──────────────────────────── */
-    .kimono-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .kimono-card {
-      border-radius: 12px;
-      overflow: hidden;
-      cursor: pointer;
-      border: 2.5px solid transparent;
-      transition: all 0.2s;
-      background: #f0e8ec;
-    }
-    .kimono-card.selected {
-      border-color: #8b1c3f;
-      box-shadow: 0 0 0 3px rgba(139,28,63,0.15);
-    }
-    .kimono-card:hover { transform: translateY(-2px); }
-    .kimono-visual {
-      aspect-ratio: 2/3;
+    /* ── Loading ── */
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #0a0a0a;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
-      overflow: hidden;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
     }
-    .kimono-visual svg {
-      width: 80%;
-      height: 80%;
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
-    .kimono-name {
-      text-align: center;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 6px 4px;
-      letter-spacing: 0.08em;
-    }
-    .kimono-check {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 20px;
-      height: 20px;
-      background: #8b1c3f;
-      border-radius: 50%;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 0.7rem;
-    }
-    .kimono-card.selected .kimono-check { display: flex; }
-
-    /* ── Generate Button ──────────────────────────── */
-    .generate-btn {
-      display: block;
-      width: calc(100% - 32px);
-      margin: 16px 16px 0;
-      padding: 16px;
-      background: linear-gradient(135deg, #8b1c3f 0%, #c0396a 100%);
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-      font-size: 1rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(139,28,63,0.35);
-      position: relative;
-      overflow: hidden;
-    }
-    .generate-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(139,28,63,0.45);
-    }
-    .generate-btn:disabled {
-      background: linear-gradient(135deg, #c4a0b0 0%, #d4b4c4 100%);
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-    .generate-btn .btn-icon { margin-right: 6px; }
-
-    /* Shimmer animation on button */
-    .generate-btn::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -75%;
-      width: 50%;
-      height: 200%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transform: skewX(-20deg);
-    }
-    .generate-btn:not(:disabled):hover::after {
-      animation: shimmer 0.6s ease;
-    }
-    @keyframes shimmer {
-      from { left: -75%; }
-      to   { left: 125%; }
-    }
-
-    /* ── Loading ──────────────────────────────────── */
-    .loading-card {
-      margin: 16px 16px 0;
-      background: #fff;
-      border-radius: 16px;
-      padding: 28px 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      text-align: center;
-    }
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid #f0e8ec;
-      border-top-color: #8b1c3f;
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid #222;
+      border-top-color: #66BB6A;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #8b1c3f; font-weight: 600; font-size: 0.9rem; }
-    .loading-sub { color: #aaa; font-size: 0.75rem; margin-top: 6px; }
+    .loading-text {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #555;
+      letter-spacing: 2px;
+    }
 
-    /* ── Result ───────────────────────────────────── */
-    .result-card {
-      margin: 16px 16px 0;
-      background: #fff;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .result-header {
-      background: linear-gradient(135deg, #8b1c3f 0%, #c0396a 100%);
-      padding: 14px 20px;
-      color: #fff;
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      display: flex;
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
     }
-    .result-image-wrap {
-      position: relative;
-      background: #f7f0f4;
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
     }
-    .result-canvas {
-      width: 100%;
-      display: block;
-    }
-    .result-kimono-badge {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(139,28,63,0.85);
+    .modal h3 {
+      font-size: 20px;
       color: #fff;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      letter-spacing: 0.08em;
-    }
-    .result-body {
-      padding: 18px 20px;
-    }
-    .result-desc {
-      font-size: 0.85rem;
-      line-height: 1.75;
-      color: #3c3c3c;
-      white-space: pre-wrap;
-    }
-    .result-desc-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #8b1c3f;
-      letter-spacing: 0.1em;
       margin-bottom: 8px;
     }
-
-    /* ── Error ────────────────────────────────────── */
-    .error-card {
-      margin: 16px 16px 0;
-      background: #fff5f8;
-      border: 1.5px solid #f0c0d0;
-      border-radius: 14px;
-      padding: 16px 20px;
+    .modal p {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .modal-details {
+      background: #111;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .modal-details .detail-row {
       display: flex;
-      gap: 12px;
-      align-items: flex-start;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
     }
-    .error-icon { font-size: 1.25rem; flex-shrink: 0; }
-    .error-text { font-size: 0.8rem; color: #8b1c3f; line-height: 1.6; }
-
-    /* ── Retry Button ─────────────────────────────── */
-    .retry-btn {
-      display: block;
-      width: calc(100% - 32px);
-      margin: 12px 16px 0;
-      padding: 12px;
-      background: #fff;
-      color: #8b1c3f;
-      border: 2px solid #8b1c3f;
-      border-radius: 12px;
-      font-size: 0.85rem;
-      font-weight: 700;
+    .modal-details .detail-row .dl { color: #999; }
+    .modal-details .detail-row .dv { color: #fff; }
+    .modal-close {
+      padding: 12px 32px;
+      background: #333;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
       cursor: pointer;
-      transition: all 0.2s;
+      font-family: 'Noto Sans JP', sans-serif;
     }
-    .retry-btn:hover { background: #fdf0f5; }
-
-    /* ── Utilities ────────────────────────────────── */
-    .hidden { display: none !important; }
-
-    /* ── Pattern overlay colors for canvas ─────────── */
+    .modal-close:hover { background: #444; }
   </style>
 </head>
 <body>
 
-<div class="app">
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">LOADING...</div>
+</div>
 
-  <!-- Header -->
-  <header class="header">
-    <h1>👘 AI 着物試着</h1>
-    <p>写真をアップして、AIで着物のイメージを生成</p>
-  </header>
-
-  <!-- Section 0: API Key -->
-  <section class="section">
-    <div class="section-label">🔑 Anthropic API Key</div>
-    <input
-      type="password"
-      id="apiKey"
-      class="api-key-input"
-      placeholder="sk-ant-..."
-      autocomplete="off"
-    />
-    <p class="api-key-hint">※ APIキーはブラウザ内のみで使用され、外部には送信されません</p>
-  </section>
-
-  <!-- Section 1: Photo Upload -->
-  <section class="section">
-    <div class="section-label">📷 写真アップロード</div>
-
-    <!-- Upload zone (shown when no photo) -->
-    <div id="uploadZone" class="upload-zone">
-      <input type="file" id="fileInput" accept="image/*" />
-      <span class="upload-icon">🤳</span>
-      <div class="upload-text">タップして写真を選ぶ</div>
-      <div class="upload-sub">JPG / PNG / WEBP · 最大10MB</div>
-    </div>
-
-    <!-- Photo preview (hidden until photo loaded) -->
-    <div id="photoPreview" class="photo-preview hidden">
-      <img id="previewImg" src="" alt="アップロード写真" />
-      <label class="change-btn">
-        📂 変更
-        <input type="file" id="fileInputChange" accept="image/*" />
-      </label>
-    </div>
-  </section>
-
-  <!-- Section 2: Kimono Selection -->
-  <section class="section">
-    <div class="section-label">👘 着物を選ぶ</div>
-    <div class="kimono-grid" id="kimonoGrid">
-
-      <!-- Kimono 1: Sakura -->
-      <div class="kimono-card" data-id="sakura" data-name="桜染め" onclick="selectKimono(this)">
-        <div class="kimono-visual" style="background: linear-gradient(160deg, #fce4ec, #f8bbd0, #f48fb1);">
-          <div class="kimono-check">✓</div>
-          <svg viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Kimono shape -->
-            <path d="M50 10 L20 40 L15 140 L85 140 L80 40 Z" fill="rgba(240,120,160,0.6)" stroke="#c06080" stroke-width="2"/>
-            <!-- Collar left -->
-            <path d="M50 10 L35 50 L50 55" fill="none" stroke="#c06080" stroke-width="2.5"/>
-            <!-- Collar right -->
-            <path d="M50 10 L65 50 L50 55" fill="none" stroke="#c06080" stroke-width="2.5"/>
-            <!-- Obi (sash) -->
-            <rect x="20" y="75" width="60" height="18" rx="3" fill="rgba(180,50,80,0.5)" stroke="#a03060" stroke-width="1.5"/>
-            <!-- Sakura petals pattern -->
-            <circle cx="35" cy="60" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="65" cy="55" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="30" cy="100" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="70" cy="110" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="50" cy="120" r="3" fill="rgba(255,255,255,0.6)"/>
-            <!-- Sleeves -->
-            <path d="M15 40 L5 85 L20 85 L20 40" fill="rgba(240,120,160,0.5)" stroke="#c06080" stroke-width="1.5"/>
-            <path d="M85 40 L95 85 L80 85 L80 40" fill="rgba(240,120,160,0.5)" stroke="#c06080" stroke-width="1.5"/>
-          </svg>
-        </div>
-        <div class="kimono-name" style="color:#c06080; background:#fce4ec;">桜染め</div>
-      </div>
-
-      <!-- Kimono 2: Indigo -->
-      <div class="kimono-card" data-id="indigo" data-name="藍染め" onclick="selectKimono(this)">
-        <div class="kimono-visual" style="background: linear-gradient(160deg, #e3f2fd, #90caf9, #42a5f5);">
-          <div class="kimono-check">✓</div>
-          <svg viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M50 10 L20 40 L15 140 L85 140 L80 40 Z" fill="rgba(30,80,160,0.65)" stroke="#1a4090" stroke-width="2"/>
-            <path d="M50 10 L35 50 L50 55" fill="none" stroke="#1a4090" stroke-width="2.5"/>
-            <path d="M50 10 L65 50 L50 55" fill="none" stroke="#1a4090" stroke-width="2.5"/>
-            <rect x="20" y="75" width="60" height="18" rx="3" fill="rgba(10,50,120,0.6)" stroke="#0a3280" stroke-width="1.5"/>
-            <!-- Wave pattern -->
-            <path d="M20 60 Q30 55 40 60 Q50 65 60 60 Q70 55 80 60" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-            <path d="M20 100 Q30 95 40 100 Q50 105 60 100 Q70 95 80 100" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-            <path d="M20 120 Q30 115 40 120 Q50 125 60 120 Q70 115 80 120" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-            <path d="M15 40 L5 85 L20 85 L20 40" fill="rgba(30,80,160,0.55)" stroke="#1a4090" stroke-width="1.5"/>
-            <path d="M85 40 L95 85 L80 85 L80 40" fill="rgba(30,80,160,0.55)" stroke="#1a4090" stroke-width="1.5"/>
-          </svg>
-        </div>
-        <div class="kimono-name" style="color:#1a4090; background:#e3f2fd;">藍染め</div>
-      </div>
-
-      <!-- Kimono 3: Gold -->
-      <div class="kimono-card" data-id="gold" data-name="金彩鶴" onclick="selectKimono(this)">
-        <div class="kimono-visual" style="background: linear-gradient(160deg, #fff8e1, #ffe082, #ffd740);">
-          <div class="kimono-check">✓</div>
-          <svg viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M50 10 L20 40 L15 140 L85 140 L80 40 Z" fill="rgba(200,140,0,0.55)" stroke="#a07000" stroke-width="2"/>
-            <path d="M50 10 L35 50 L50 55" fill="none" stroke="#a07000" stroke-width="2.5"/>
-            <path d="M50 10 L65 50 L50 55" fill="none" stroke="#a07000" stroke-width="2.5"/>
-            <rect x="20" y="75" width="60" height="18" rx="3" fill="rgba(140,80,0,0.5)" stroke="#805000" stroke-width="1.5"/>
-            <!-- Crane motif -->
-            <path d="M45 55 L35 65 M45 55 L55 60 M45 55 L42 45" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="42" cy="43" r="3" fill="rgba(255,255,255,0.7)"/>
-            <!-- Gold accents -->
-            <circle cx="30" cy="105" r="4" fill="rgba(255,255,255,0.5)"/>
-            <circle cx="70" cy="95" r="3" fill="rgba(255,255,255,0.5)"/>
-            <circle cx="55" cy="118" r="3" fill="rgba(255,255,255,0.5)"/>
-            <path d="M15 40 L5 85 L20 85 L20 40" fill="rgba(200,140,0,0.5)" stroke="#a07000" stroke-width="1.5"/>
-            <path d="M85 40 L95 85 L80 85 L80 40" fill="rgba(200,140,0,0.5)" stroke="#a07000" stroke-width="1.5"/>
-          </svg>
-        </div>
-        <div class="kimono-name" style="color:#a07000; background:#fff8e1;">金彩鶴</div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- Generate Button -->
-  <button class="generate-btn" id="generateBtn" disabled onclick="generate()">
-    <span class="btn-icon">✨</span> 着用イメージを生成
-  </button>
-
-  <!-- Loading State -->
-  <div id="loadingCard" class="loading-card hidden">
-    <div class="spinner"></div>
-    <div class="loading-text">AIが着物姿を生成中...</div>
-    <div class="loading-sub" id="loadingStatus">写真を解析しています</div>
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">K</div>
+    <div class="logo-text"><span>KAWASAKI</span> Z900RS CUSTOM</div>
   </div>
+  <div class="header-badge">SALES DEMO</div>
+</header>
 
-  <!-- Error State -->
-  <div id="errorCard" class="error-card hidden">
-    <div class="error-icon">⚠️</div>
-    <div class="error-text" id="errorText">エラーが発生しました</div>
-  </div>
-  <button class="retry-btn hidden" id="retryBtn" onclick="resetResult()">もう一度試す</button>
+<!-- Main -->
+<div class="main">
+  <!-- Left Panel -->
+  <div class="panel-left">
+    <div class="panel-header">
+      <h2>パーツを選択</h2>
+      <p>お好みのパーツを選んでカスタマイズ</p>
+    </div>
 
-  <!-- Result -->
-  <div id="resultCard" class="result-card hidden">
-    <div class="result-header">
-      ✨ AI 生成結果
-      <span id="resultKimonoName" style="margin-left:auto; font-size:0.75rem; opacity:0.9;"></span>
+    <!-- マフラー -->
+    <div class="category">
+      <div class="category-title">EXHAUST / マフラー</div>
+      <div class="part-options" data-category="exhaust">
+        <div class="part-option selected" data-part="exhaust-std" onclick="selectPart('exhaust','exhaust-std')">
+          <div class="part-info">
+            <div class="part-name">純正マフラー</div>
+            <div class="part-desc">Z900RS 標準装備</div>
+          </div>
+          <div class="part-price">¥0</div>
+        </div>
+        <div class="part-option" data-part="exhaust-yoshimura" onclick="selectPart('exhaust','exhaust-yoshimura')">
+          <div class="part-info">
+            <div class="part-name">ヨシムラ R-77S サイクロン</div>
+            <div class="part-desc">カーボンエンド / EXPORT SPEC</div>
+          </div>
+          <div class="part-price">¥178,200</div>
+        </div>
+      </div>
     </div>
-    <div class="result-image-wrap">
-      <canvas id="resultCanvas" class="result-canvas"></canvas>
-      <div class="result-kimono-badge" id="resultBadge"></div>
+
+    <!-- ハンドル -->
+    <div class="category">
+      <div class="category-title">HANDLEBAR / ハンドル</div>
+      <div class="part-options" data-category="handlebar">
+        <div class="part-option selected" data-part="handle-std" onclick="selectPart('handlebar','handle-std')">
+          <div class="part-info">
+            <div class="part-name">純正ハンドル</div>
+            <div class="part-desc">Z900RS 標準装備</div>
+          </div>
+          <div class="part-price">¥0</div>
+        </div>
+        <div class="part-option" data-part="handle-over" onclick="selectPart('handlebar','handle-over')">
+          <div class="part-info">
+            <div class="part-name">OVER Racing スポーツ</div>
+            <div class="part-desc">アルミ削り出し / ブラック</div>
+          </div>
+          <div class="part-price">¥38,500</div>
+        </div>
+      </div>
     </div>
-    <div class="result-body">
-      <div class="result-desc-label">🤖 AI の着用イメージ解説</div>
-      <div class="result-desc" id="resultDesc"></div>
+
+    <!-- ミラー -->
+    <div class="category">
+      <div class="category-title">MIRROR / ミラー</div>
+      <div class="part-options" data-category="mirror">
+        <div class="part-option selected" data-part="mirror-std" onclick="selectPart('mirror','mirror-std')">
+          <div class="part-info">
+            <div class="part-name">純正ミラー</div>
+            <div class="part-desc">Z900RS 標準装備</div>
+          </div>
+          <div class="part-price">¥0</div>
+        </div>
+        <div class="part-option" data-part="mirror-napoleon" onclick="selectPart('mirror','mirror-napoleon')">
+          <div class="part-info">
+            <div class="part-name">ナポレオン クロス2</div>
+            <div class="part-desc">バーエンドミラー / ブラック</div>
+          </div>
+          <div class="part-price">¥12,100</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+      <div class="summary-title">カスタム内容</div>
+      <div class="summary-items" id="summaryItems">
+        <div class="summary-item"><span class="label">マフラー</span><span class="value">純正</span></div>
+        <div class="summary-item"><span class="label">ハンドル</span><span class="value">純正</span></div>
+        <div class="summary-item"><span class="label">ミラー</span><span class="value">純正</span></div>
+      </div>
+      <hr class="summary-divider" />
+      <div class="summary-total">
+        <span class="label">カスタム合計</span>
+        <span class="value" id="totalPrice">¥0</span>
+      </div>
+      <button class="cta-btn" onclick="showModal()">この仕様で販売店に相談する</button>
+      <span class="cta-sub">※ デモ用画面です</span>
     </div>
   </div>
 
-</div><!-- /app -->
+  <!-- 3D Viewer -->
+  <div class="viewer">
+    <canvas id="canvas3d"></canvas>
+    <div class="viewer-model-label">
+      <h3>Z900RS</h3>
+      <p>KAWASAKI 2024</p>
+    </div>
+    <div class="viewer-hint">ドラッグで回転 / スクロールでズーム</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>お問い合わせ内容</h3>
+    <p>以下のカスタム仕様で販売店にご相談いただけます。</p>
+    <div class="modal-details" id="modalDetails"></div>
+    <button class="modal-close" onclick="closeModal()">閉じる</button>
+  </div>
+</div>
 
 <script>
-  // ── State ────────────────────────────────────────
-  let uploadedDataURL = null;
-  let selectedKimono = null;
-
-  const KIMONOS = {
-    sakura: {
-      name: '桜染め',
-      description: '淡いピンク色を基調とし、桜の花びらが散りばめられた優美な着物。春の宴や女性らしさを引き立てる一着。',
-      color1: '#f8bbd0',
-      color2: '#f48fb1',
-      pattern: 'sakura',
-      accent: '#c06080',
-    },
-    indigo: {
-      name: '藍染め',
-      description: '深い藍色に白抜きの波紋が美しい伝統的な藍染め着物。凛とした知性と落ち着きを演出する格調ある一着。',
-      color1: '#90caf9',
-      color2: '#1565c0',
-      pattern: 'wave',
-      accent: '#1a4090',
-    },
-    gold: {
-      name: '金彩鶴',
-      description: '黄金色の地に金彩の鶴が舞う格調高い着物。慶事や特別な場面で存在感を放つ華やかな一着。',
-      color1: '#ffe082',
-      color2: '#f9a825',
-      pattern: 'crane',
-      accent: '#a07000',
-    },
-  };
-
-  // ── UI Helpers ───────────────────────────────────
-  function $(id) { return document.getElementById(id); }
-
-  function updateGenerateBtn() {
-    $('generateBtn').disabled = !(uploadedDataURL && selectedKimono && $('apiKey').value.trim());
+// ─── Parts Data ───
+const PARTS = {
+  exhaust: {
+    'exhaust-std':       { name: '純正マフラー',              price: 0,      color: 0x555555, scale: 1.0 },
+    'exhaust-yoshimura': { name: 'ヨシムラ R-77S サイクロン', price: 178200, color: 0xcc8833, scale: 1.15 }
+  },
+  handlebar: {
+    'handle-std':  { name: '純正ハンドル',              price: 0,     width: 1.0, color: 0x666666 },
+    'handle-over': { name: 'OVER Racing スポーツ',      price: 38500, width: 0.85, color: 0x222222 }
+  },
+  mirror: {
+    'mirror-std':      { name: '純正ミラー',          price: 0,     shape: 'round',  color: 0x666666 },
+    'mirror-napoleon': { name: 'ナポレオン クロス2',  price: 12100, shape: 'bar-end', color: 0x222222 }
   }
+};
 
-  // ── Photo Upload ─────────────────────────────────
-  function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedDataURL = e.target.result;
-      $('previewImg').src = uploadedDataURL;
-      $('uploadZone').classList.add('hidden');
-      $('photoPreview').classList.remove('hidden');
-      updateGenerateBtn();
-    };
-    reader.readAsDataURL(file);
+const state = {
+  exhaust: 'exhaust-std',
+  handlebar: 'handle-std',
+  mirror: 'mirror-std'
+};
+
+// ─── Three.js Setup ───
+const canvas = document.getElementById('canvas3d');
+const viewer = document.querySelector('.viewer');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+camera.position.set(6, 3, 6);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.minDistance = 4;
+controls.maxDistance = 14;
+controls.maxPolarAngle = Math.PI / 2 + 0.2;
+controls.target.set(0, 0.8, 0);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5, 8, 5);
+dirLight.castShadow = true;
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+fillLight.position.set(-5, 3, -5);
+scene.add(fillLight);
+const rimLight = new THREE.PointLight(0x66BB6A, 0.5, 20);
+rimLight.position.set(-3, 4, 0);
+scene.add(rimLight);
+
+// Ground
+const groundGeo = new THREE.CircleGeometry(10, 64);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Grid
+const grid = new THREE.GridHelper(20, 40, 0x222222, 0x181818);
+grid.position.y = 0.01;
+scene.add(grid);
+
+// ─── Build Bike Model ───
+const bikeGroup = new THREE.Group();
+scene.add(bikeGroup);
+
+function makeMat(color, metalness = 0.6, roughness = 0.3) {
+  return new THREE.MeshStandardMaterial({ color, metalness, roughness });
+}
+
+// Frame
+const frameMat = makeMat(0x1a1a1a, 0.8, 0.2);
+// Main tube
+const frameTube = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.2, 12), frameMat);
+frameTube.rotation.z = Math.PI / 5;
+frameTube.position.set(0.3, 1.4, 0);
+bikeGroup.add(frameTube);
+// Down tube
+const downTube = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.6, 12), frameMat);
+downTube.rotation.z = -Math.PI / 6;
+downTube.position.set(0.15, 0.9, 0);
+bikeGroup.add(downTube);
+// Sub frame
+const subFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.4, 8), frameMat);
+subFrame.rotation.z = Math.PI / 8;
+subFrame.position.set(-0.5, 1.3, 0);
+bikeGroup.add(subFrame);
+
+// Engine
+const engineMat = makeMat(0x2a2a2a, 0.9, 0.15);
+const engine = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.65, 0.55, 2, 2, 2), engineMat);
+engine.position.set(0.1, 0.7, 0);
+bikeGroup.add(engine);
+// Engine detail
+const engineDetail = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.6, 8), engineMat);
+engineDetail.rotation.z = Math.PI / 2;
+engineDetail.position.set(0.1, 0.55, 0);
+bikeGroup.add(engineDetail);
+
+// Tank
+const tankMat = makeMat(0x2E7D32, 0.7, 0.25);
+const tank = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), tankMat);
+tank.scale.set(1.6, 1, 1.2);
+tank.position.set(0.15, 1.55, 0);
+bikeGroup.add(tank);
+const tankBottom = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), tankMat);
+tankBottom.scale.set(1.6, 0.5, 1.2);
+tankBottom.position.set(0.15, 1.55, 0);
+bikeGroup.add(tankBottom);
+
+// Seat
+const seatMat = makeMat(0x111111, 0.3, 0.7);
+const seat = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.15, 0.5), seatMat);
+seat.position.set(-0.55, 1.45, 0);
+bikeGroup.add(seat);
+
+// Wheels
+const wheelMat = makeMat(0x111111, 0.2, 0.8);
+const tireMat = makeMat(0x1a1a1a, 0.1, 0.9);
+function createWheel(x) {
+  const group = new THREE.Group();
+  const tire = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.14, 16, 32), tireMat);
+  tire.rotation.y = Math.PI / 2;
+  group.add(tire);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.2, 16), wheelMat);
+  hub.rotation.x = Math.PI / 2;
+  group.add(hub);
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.03, 24), makeMat(0x888888, 0.9, 0.1));
+  disc.rotation.x = Math.PI / 2;
+  disc.position.z = 0.08;
+  group.add(disc);
+  // Spokes
+  for (let i = 0; i < 8; i++) {
+    const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.35, 4), wheelMat);
+    spoke.rotation.z = (i / 8) * Math.PI;
+    spoke.rotation.x = Math.PI / 2;
+    group.add(spoke);
   }
+  group.position.set(x, 0.42, 0);
+  return group;
+}
+const frontWheel = createWheel(1.1);
+const rearWheel = createWheel(-1.1);
+bikeGroup.add(frontWheel);
+bikeGroup.add(rearWheel);
 
-  $('fileInput').addEventListener('change', (e) => handleFile(e.target.files[0]));
-  $('fileInputChange').addEventListener('change', (e) => handleFile(e.target.files[0]));
-  $('apiKey').addEventListener('input', updateGenerateBtn);
+// Front fork
+const forkMat = makeMat(0xccaa00, 0.9, 0.1);
+function createFork(zOff) {
+  const fork = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.5, 8), forkMat);
+  fork.rotation.z = Math.PI / 8;
+  fork.position.set(0.85, 1.15, zOff);
+  return fork;
+}
+bikeGroup.add(createFork(0.15));
+bikeGroup.add(createFork(-0.15));
 
-  // Drag & drop
-  const zone = $('uploadZone');
-  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-    handleFile(e.dataTransfer.files[0]);
+// Rear suspension
+const rearSusp = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8), makeMat(0x444444));
+rearSusp.rotation.z = Math.PI / 5;
+rearSusp.position.set(-0.75, 0.9, 0);
+bikeGroup.add(rearSusp);
+
+// Headlight
+const headlightMat = makeMat(0xffffcc, 0.2, 0.1);
+const headlight = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), headlightMat);
+headlight.scale.set(1, 1, 0.6);
+headlight.position.set(1.1, 1.55, 0);
+bikeGroup.add(headlight);
+// Headlight ring
+const hlRing = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.02, 8, 24), makeMat(0x888888, 0.9, 0.1));
+hlRing.position.set(1.1, 1.55, 0);
+bikeGroup.add(hlRing);
+
+// Taillight
+const taillight = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.2), makeMat(0xcc0000, 0.3, 0.4));
+taillight.position.set(-1.15, 1.25, 0);
+bikeGroup.add(taillight);
+
+// Fender front
+const fenderFMat = makeMat(0x1a1a1a, 0.6, 0.3);
+const fenderF = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.06, 8, 16, Math.PI * 0.6), fenderFMat);
+fenderF.rotation.y = Math.PI / 2;
+fenderF.rotation.z = -Math.PI / 6;
+fenderF.position.set(1.1, 0.55, 0);
+bikeGroup.add(fenderF);
+
+// Fender rear
+const fenderR = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.05, 8, 16, Math.PI * 0.4), fenderFMat);
+fenderR.rotation.y = Math.PI / 2;
+fenderR.rotation.z = Math.PI / 5;
+fenderR.position.set(-1.1, 0.6, 0);
+bikeGroup.add(fenderR);
+
+// ── Swappable Parts ──
+let exhaustMesh, handlebarGroup, mirrorLeftMesh, mirrorRightMesh;
+
+function buildExhaust() {
+  if (exhaustMesh) bikeGroup.remove(exhaustMesh);
+  const part = PARTS.exhaust[state.exhaust];
+  const g = new THREE.Group();
+  // Header pipe
+  const header = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8), makeMat(0x888888, 0.9, 0.1));
+  header.rotation.z = Math.PI / 3;
+  header.position.set(0.3, 0.4, 0.3);
+  g.add(header);
+  // Muffler body
+  const radius = 0.07 * part.scale;
+  const muffler = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 0.9, 0.8 * part.scale, 12), makeMat(part.color, 0.85, 0.15));
+  muffler.rotation.z = Math.PI / 2;
+  muffler.position.set(-0.5, 0.35, 0.35);
+  g.add(muffler);
+  // End cap
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.05, radius * 0.5, 0.08, 12), makeMat(0x333333, 0.9, 0.1));
+  cap.rotation.z = Math.PI / 2;
+  cap.position.set(-0.92, 0.35, 0.35);
+  g.add(cap);
+  exhaustMesh = g;
+  bikeGroup.add(g);
+}
+
+function buildHandlebar() {
+  if (handlebarGroup) bikeGroup.remove(handlebarGroup);
+  const part = PARTS.handlebar[state.handlebar];
+  const g = new THREE.Group();
+  const mat = makeMat(part.color, 0.8, 0.2);
+  // Bar
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7 * part.width, 8), mat);
+  bar.rotation.x = Math.PI / 2;
+  bar.position.set(1.0, 1.85, 0);
+  g.add(bar);
+  // Grips
+  const gripMat = makeMat(0x111111, 0.2, 0.8);
+  [-1, 1].forEach(side => {
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8), gripMat);
+    grip.rotation.x = Math.PI / 2;
+    grip.position.set(1.0, 1.85, side * 0.35 * part.width);
+    g.add(grip);
   });
+  // Clamp
+  const clamp = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.08), mat);
+  clamp.position.set(1.0, 1.85, 0);
+  g.add(clamp);
+  handlebarGroup = g;
+  bikeGroup.add(g);
+}
 
-  // ── Kimono Selection ─────────────────────────────
-  function selectKimono(card) {
-    document.querySelectorAll('.kimono-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    selectedKimono = card.dataset.id;
-    updateGenerateBtn();
-  }
+function buildMirrors() {
+  if (mirrorLeftMesh) bikeGroup.remove(mirrorLeftMesh);
+  if (mirrorRightMesh) bikeGroup.remove(mirrorRightMesh);
+  const part = PARTS.mirror[state.mirror];
+  const mat = makeMat(part.color, 0.8, 0.2);
+  const glassMat = makeMat(0xaaccff, 0.95, 0.05);
 
-  // ── Canvas Composite ─────────────────────────────
-  function drawComposite(kimono) {
-    const canvas = $('resultCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => {
-      // 3:4 portrait ratio
-      const w = img.naturalWidth;
-      const h = img.naturalHeight;
-      const targetW = 480;
-      const targetH = Math.round(targetW * (h / w));
-      canvas.width = targetW;
-      canvas.height = targetH;
-
-      // Draw base photo
-      ctx.drawImage(img, 0, 0, targetW, targetH);
-
-      // Kimono color overlay (lower body)
-      const overlayTop = targetH * 0.35;
-      const overlayH = targetH * 0.65;
-      const grad = ctx.createLinearGradient(0, overlayTop, 0, targetH);
-      grad.addColorStop(0, hexToRgba(kimono.color1, 0));
-      grad.addColorStop(0.25, hexToRgba(kimono.color1, 0.45));
-      grad.addColorStop(1, hexToRgba(kimono.color2, 0.6));
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, overlayTop, targetW, overlayH);
-
-      // Pattern layer
-      drawPattern(ctx, kimono, targetW, targetH);
-
-      // Subtle vignette
-      const vig = ctx.createRadialGradient(targetW/2, targetH/2, targetH*0.3, targetW/2, targetH/2, targetH*0.8);
-      vig.addColorStop(0, 'rgba(0,0,0,0)');
-      vig.addColorStop(1, 'rgba(0,0,0,0.25)');
-      ctx.fillStyle = vig;
-      ctx.fillRect(0, 0, targetW, targetH);
-    };
-    img.src = uploadedDataURL;
-  }
-
-  function drawPattern(ctx, kimono, w, h) {
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    if (kimono.pattern === 'sakura') {
-      for (let i = 0; i < 18; i++) {
-        const x = Math.random() * w;
-        const y = h * 0.4 + Math.random() * h * 0.55;
-        drawSakura(ctx, x, y, 10 + Math.random() * 14, kimono.accent);
-      }
-    } else if (kimono.pattern === 'wave') {
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = 2;
-      for (let row = 0; row < 6; row++) {
-        const y = h * 0.45 + row * (h * 0.09);
-        ctx.beginPath();
-        for (let x = 0; x <= w; x += 4) {
-          const wy = y + Math.sin((x / w) * Math.PI * 4) * 8;
-          row === 0 && x === 0 ? ctx.moveTo(x, wy) : ctx.lineTo(x, wy);
-        }
-        ctx.stroke();
-      }
-    } else if (kimono.pattern === 'crane') {
-      for (let i = 0; i < 5; i++) {
-        const x = 60 + Math.random() * (w - 120);
-        const y = h * 0.45 + Math.random() * h * 0.45;
-        drawCrane(ctx, x, y, 20 + Math.random() * 16);
-      }
+  function createMirror(zSign) {
+    const g = new THREE.Group();
+    if (part.shape === 'round') {
+      // Stem
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 6), mat);
+      stem.rotation.x = Math.PI / 2 * 0.5 * zSign;
+      stem.position.set(0.95, 1.95, zSign * 0.25);
+      g.add(stem);
+      // Head
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.015, 16), glassMat);
+      head.rotation.x = Math.PI / 4 * zSign * 0.5;
+      head.position.set(0.9, 2.05, zSign * 0.4);
+      g.add(head);
+    } else {
+      // Bar-end style
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.15, 6), mat);
+      stem.rotation.z = Math.PI / 3;
+      stem.position.set(0.95, 1.9, zSign * 0.38);
+      g.add(stem);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.01, 0.05), glassMat);
+      head.position.set(0.88, 1.97, zSign * 0.42);
+      g.add(head);
     }
-    ctx.restore();
+    return g;
   }
+  mirrorLeftMesh = createMirror(1);
+  mirrorRightMesh = createMirror(-1);
+  bikeGroup.add(mirrorLeftMesh);
+  bikeGroup.add(mirrorRightMesh);
+}
 
-  function drawSakura(ctx, x, y, r, color) {
-    ctx.fillStyle = color;
-    for (let i = 0; i < 5; i++) {
-      const angle = (i * 72 - 90) * Math.PI / 180;
-      ctx.beginPath();
-      ctx.ellipse(
-        x + Math.cos(angle) * r * 0.55,
-        y + Math.sin(angle) * r * 0.55,
-        r * 0.45, r * 0.28,
-        angle, 0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(255,200,210,0.8)';
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.2, 0, Math.PI * 2);
-    ctx.fill();
+// Initial build
+buildExhaust();
+buildHandlebar();
+buildMirrors();
+
+// ─── Part Selection Logic ───
+function selectPart(category, partId) {
+  state[category] = partId;
+  // Update UI selection
+  document.querySelectorAll(`[data-category="${category}"] .part-option`).forEach(el => {
+    el.classList.toggle('selected', el.dataset.part === partId);
+  });
+  // Rebuild 3D
+  if (category === 'exhaust') buildExhaust();
+  if (category === 'handlebar') buildHandlebar();
+  if (category === 'mirror') buildMirrors();
+  // Update summary & price
+  updateSummary();
+}
+
+function updateSummary() {
+  const ex = PARTS.exhaust[state.exhaust];
+  const hb = PARTS.handlebar[state.handlebar];
+  const mr = PARTS.mirror[state.mirror];
+  const total = ex.price + hb.price + mr.price;
+
+  document.getElementById('summaryItems').innerHTML = `
+    <div class="summary-item"><span class="label">マフラー</span><span class="value">${ex.name}</span></div>
+    <div class="summary-item"><span class="label">ハンドル</span><span class="value">${hb.name}</span></div>
+    <div class="summary-item"><span class="label">ミラー</span><span class="value">${mr.name}</span></div>
+  `;
+  document.getElementById('totalPrice').textContent = '¥' + total.toLocaleString();
+}
+
+// ─── Modal ───
+function showModal() {
+  const ex = PARTS.exhaust[state.exhaust];
+  const hb = PARTS.handlebar[state.handlebar];
+  const mr = PARTS.mirror[state.mirror];
+  const total = ex.price + hb.price + mr.price;
+
+  document.getElementById('modalDetails').innerHTML = `
+    <div class="detail-row"><span class="dl">車種</span><span class="dv">Kawasaki Z900RS</span></div>
+    <div class="detail-row"><span class="dl">マフラー</span><span class="dv">${ex.name} (¥${ex.price.toLocaleString()})</span></div>
+    <div class="detail-row"><span class="dl">ハンドル</span><span class="dv">${hb.name} (¥${hb.price.toLocaleString()})</span></div>
+    <div class="detail-row"><span class="dl">ミラー</span><span class="dv">${mr.name} (¥${mr.price.toLocaleString()})</span></div>
+    <div class="detail-row" style="border-top:1px solid #333;margin-top:8px;padding-top:12px;">
+      <span class="dl" style="font-weight:700;color:#ccc;">合計</span>
+      <span class="dv" style="font-weight:700;color:#66BB6A;font-size:16px;">¥${total.toLocaleString()}</span>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ─── Resize ───
+function onResize() {
+  const w = viewer.clientWidth;
+  const h = viewer.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+onResize();
+
+// ─── Animate ───
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ─── Auto-rotate ───
+let autoRotate = true;
+controls.addEventListener('start', () => { autoRotate = false; });
+function autoRotateUpdate() {
+  if (autoRotate) {
+    bikeGroup.rotation.y += 0.003;
   }
+}
+function animateWithRotate() {
+  requestAnimationFrame(animateWithRotate);
+  autoRotateUpdate();
+  controls.update();
+  renderer.render(scene, camera);
+}
+// Replace the basic animate loop
+cancelAnimationFrame;
+animateWithRotate();
 
-  function drawCrane(ctx, x, y, s) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    // Body
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + s, y - s * 0.3);
-    ctx.stroke();
-    // Neck & head
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - s * 0.3, y - s * 0.7);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x - s * 0.3, y - s * 0.85, s * 0.15, 0, Math.PI * 2);
-    ctx.stroke();
-    // Wings
-    ctx.beginPath();
-    ctx.moveTo(x + s * 0.3, y - s * 0.1);
-    ctx.lineTo(x + s * 0.2, y - s * 0.6);
-    ctx.lineTo(x + s * 0.7, y - s * 0.2);
-    ctx.stroke();
-    // Tail
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - s * 0.4, y + s * 0.3);
-    ctx.stroke();
-  }
-
-  function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1,3), 16);
-    const g = parseInt(hex.slice(3,5), 16);
-    const b = parseInt(hex.slice(5,7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
-
-  // ── Claude API Call ───────────────────────────────
-  async function callClaude(apiKey, photoBase64, photoMime, kimono) {
-    const prompt = `あなたは着物スタイリストのAIです。
-添付された写真の人物が「${kimono.name}」を着用したときの着用イメージを、
-以下の視点から日本語で詳しく描写してください（200〜300文字程度）：
-・着物の色や柄が人物にどう映えるか
-・全体的な雰囲気・印象
-・どんなシーンや季節に似合うか
-・おすすめの帯や小物の合わせ方
-
-${kimono.description}`;
-
-    const body = {
-      model: 'claude-opus-4-6',
-      max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: photoMime,
-              data: photoBase64,
-            },
-          },
-          { type: 'text', text: prompt },
-        ],
-      }],
-    };
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-client-side-api-key-override': 'true',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API エラー (${res.status})`);
-    }
-    const data = await res.json();
-    return data.content.find(b => b.type === 'text')?.text || '';
-  }
-
-  // ── Generate ─────────────────────────────────────
-  async function generate() {
-    if (!uploadedDataURL || !selectedKimono) return;
-    const apiKey = $('apiKey').value.trim();
-    if (!apiKey) { alert('APIキーを入力してください'); return; }
-
-    const kimono = KIMONOS[selectedKimono];
-
-    // Show loading
-    setView('loading');
-    $('loadingStatus').textContent = '写真を解析しています...';
-
-    try {
-      // Parse data URL
-      const [header, b64] = uploadedDataURL.split(',');
-      const mime = header.match(/:(.*?);/)[1];
-
-      $('loadingStatus').textContent = 'Claude AIが着物姿を想像中...';
-      const description = await callClaude(apiKey, b64, mime, kimono);
-
-      // Draw canvas composite
-      drawComposite(kimono);
-
-      // Update result UI
-      $('resultKimonoName').textContent = kimono.name;
-      $('resultBadge').textContent = '👘 ' + kimono.name;
-      $('resultDesc').textContent = description || '（説明の生成に失敗しました）';
-
-      setView('result');
-    } catch (e) {
-      $('errorText').textContent = e.message || '不明なエラーが発生しました';
-      setView('error');
-    }
-  }
-
-  function setView(state) {
-    $('loadingCard').classList.toggle('hidden', state !== 'loading');
-    $('errorCard').classList.toggle('hidden', state !== 'error');
-    $('retryBtn').classList.toggle('hidden', state !== 'error');
-    $('resultCard').classList.toggle('hidden', state !== 'result');
-
-    if (state !== 'hidden') {
-      setTimeout(() => {
-        const el = state === 'result' ? $('resultCard') :
-                   state === 'error' ? $('errorCard') :
-                   $('loadingCard');
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }
-
-  function resetResult() {
-    setView('hidden');
-  }
-
-  // ── Init ─────────────────────────────────────────
-  updateGenerateBtn();
+// ─── Loading ───
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+}, 800);
 </script>
 </body>
 </html>
