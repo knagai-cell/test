@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>見積書・請求書 自動作成ツール</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    /* ── App Layout ── */
+    .app { max-width: 900px; margin: 0 auto; padding: 16px 16px 80px; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1a5276 0%, #0e3d5c 100%);
+      padding: 20px 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(26,82,118,0.25);
+    }
+    .header h1 { color: #fff; font-size: 1.3rem; font-weight: 700; letter-spacing: 0.1em; }
+    .header p { color: rgba(255,255,255,0.75); font-size: 0.8rem; margin-top: 4px; }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card h2 {
+      font-size: 0.95rem;
+      color: #1a5276;
+      border-bottom: 2px solid #e8ecf0;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Form ── */
+    .form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 140px; }
+    .form-group label { display: block; font-size: 0.75rem; color: #666; margin-bottom: 4px; font-weight: 600; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d0d5dd;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #1a5276;
+      box-shadow: 0 0 0 3px rgba(26,82,118,0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+
+    /* ── Toggle ── */
+    .doc-type-toggle {
+      display: flex;
+      gap: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #1a5276;
+      margin-bottom: 16px;
+    }
+    .doc-type-toggle button {
+      flex: 1;
+      padding: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      background: #fff;
+      color: #1a5276;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .doc-type-toggle button.active {
+      background: #1a5276;
+      color: #fff;
+    }
+
+    /* ── Line Items Table ── */
+    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    .items-table th {
+      font-size: 0.72rem;
+      color: #666;
+      text-align: left;
+      padding: 6px 4px;
+      border-bottom: 2px solid #e8ecf0;
+      white-space: nowrap;
+    }
+    .items-table td { padding: 4px; vertical-align: top; }
+    .items-table input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #d0d5dd;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      font-family: inherit;
+    }
+    .items-table input:focus { outline: none; border-color: #1a5276; }
+    .items-table .col-name { width: 35%; }
+    .items-table .col-qty { width: 12%; }
+    .items-table .col-unit { width: 12%; }
+    .items-table .col-price { width: 20%; }
+    .items-table .col-amount { width: 15%; }
+    .items-table .col-del { width: 6%; }
+    .items-table .amount-cell {
+      text-align: right;
+      padding: 6px 8px;
+      font-size: 0.85rem;
+      color: #333;
+      font-weight: 600;
+    }
+    .btn-del {
+      background: none;
+      border: none;
+      color: #c0392b;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .btn-del:hover { background: #ffeaea; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+    .btn-primary { background: #1a5276; color: #fff; }
+    .btn-primary:hover { background: #154360; }
+    .btn-secondary { background: #ecf0f1; color: #333; }
+    .btn-secondary:hover { background: #d5dbdb; }
+    .btn-success { background: #27ae60; color: #fff; }
+    .btn-success:hover { background: #219a52; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-outline {
+      background: #fff;
+      color: #1a5276;
+      border: 1px solid #1a5276;
+    }
+    .btn-outline:hover { background: #eaf2f8; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* ── Summary ── */
+    .summary { text-align: right; margin-top: 12px; }
+    .summary-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 20px;
+      padding: 4px 0;
+      font-size: 0.85rem;
+    }
+    .summary-row .label { color: #666; min-width: 80px; text-align: right; }
+    .summary-row .value { min-width: 120px; text-align: right; font-weight: 600; }
+    .summary-row.total { font-size: 1.05rem; color: #1a5276; border-top: 2px solid #1a5276; padding-top: 8px; margin-top: 4px; }
+
+    /* ── Saved List ── */
+    .saved-list { list-style: none; }
+    .saved-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.82rem;
+      gap: 8px;
+    }
+    .saved-list li:last-child { border-bottom: none; }
+    .saved-info { flex: 1; cursor: pointer; }
+    .saved-info:hover { color: #1a5276; }
+    .saved-info .saved-title { font-weight: 600; }
+    .saved-info .saved-meta { color: #888; font-size: 0.72rem; margin-top: 2px; }
+    .saved-actions { display: flex; gap: 4px; }
+
+    /* ── Tax ── */
+    .tax-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .tax-row label { font-size: 0.8rem; color: #666; }
+    .tax-row select { padding: 4px 8px; border: 1px solid #d0d5dd; border-radius: 4px; font-size: 0.82rem; }
+
+    /* ── Preview (print) ── */
+    .preview-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .preview-overlay.active { display: flex; justify-content: center; align-items: flex-start; }
+    .preview-container {
+      background: #fff;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm;
+      position: relative;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+      font-size: 10pt;
+      line-height: 1.6;
+    }
+    .preview-close {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 110;
+      background: #fff;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .preview-toolbar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 110;
+      display: flex;
+      gap: 8px;
+      background: #fff;
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    /* ── Preview inner styles ── */
+    .pv-title { font-size: 18pt; font-weight: 700; text-align: center; margin-bottom: 24pt; letter-spacing: 0.3em; border-bottom: 3px double #333; padding-bottom: 8pt; }
+    .pv-header { display: flex; justify-content: space-between; margin-bottom: 16pt; }
+    .pv-client { font-size: 12pt; }
+    .pv-client-name { font-size: 14pt; font-weight: 700; border-bottom: 1px solid #333; padding-bottom: 2pt; margin-bottom: 4pt; }
+    .pv-meta { text-align: right; font-size: 9pt; color: #555; }
+    .pv-meta div { margin-bottom: 2pt; }
+    .pv-company { text-align: right; margin-bottom: 16pt; font-size: 9pt; }
+    .pv-company .name { font-size: 11pt; font-weight: 700; }
+    .pv-table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
+    .pv-table th { background: #2c3e50; color: #fff; padding: 6pt 8pt; font-size: 8.5pt; text-align: left; }
+    .pv-table td { padding: 6pt 8pt; border-bottom: 1px solid #ddd; font-size: 9pt; }
+    .pv-table .right { text-align: right; }
+    .pv-summary { text-align: right; margin-top: 8pt; font-size: 10pt; }
+    .pv-summary div { padding: 2pt 0; }
+    .pv-summary .pv-total { font-size: 14pt; font-weight: 700; color: #1a5276; border-top: 2px solid #1a5276; padding-top: 6pt; margin-top: 4pt; }
+    .pv-notes { margin-top: 20pt; font-size: 9pt; color: #555; border-top: 1px solid #ddd; padding-top: 8pt; }
+    .pv-stamp { position: absolute; top: 60mm; right: 25mm; width: 60pt; height: 60pt; border: 3px solid #c0392b; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #c0392b; font-size: 10pt; font-weight: 700; transform: rotate(-15deg); opacity: 0.8; }
+    .pv-bank { margin-top: 16pt; font-size: 9pt; background: #f9f9f9; padding: 8pt 12pt; border-radius: 4pt; }
+    .pv-bank .bank-title { font-weight: 700; margin-bottom: 4pt; }
+
+    /* ── Print styles ── */
+    @media print {
+      body { background: #fff; }
+      .app, .preview-close, .preview-toolbar { display: none !important; }
+      .preview-overlay { display: block !important; position: static; background: none; padding: 0; }
+      .preview-container { box-shadow: none; margin: 0; padding: 15mm; width: 100%; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .form-row { flex-direction: column; gap: 8px; }
+      .form-group { min-width: 100%; }
+      .items-table .col-unit { display: none; }
+      .preview-container { width: 100%; min-height: auto; padding: 10mm; font-size: 9pt; }
+    }
+    .empty-state { text-align: center; padding: 24px; color: #999; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="header">
+    <h1>見積書・請求書 自動作成</h1>
+    <p>作成 / 保存 / PDF出力</p>
+  </div>
+
+  <!-- Document Type -->
+  <div class="card">
+    <div class="doc-type-toggle">
+      <button id="btnQuote" class="active" onclick="setDocType('quote')">見積書</button>
+      <button id="btnInvoice" onclick="setDocType('invoice')">請求書</button>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>書類番号</label>
+        <input id="docNumber" placeholder="Q-2026-001" />
+      </div>
+      <div class="form-group">
+        <label>発行日</label>
+        <input type="date" id="issueDate" />
+      </div>
+      <div class="form-group">
+        <label id="dueDateLabel">見積有効期限</label>
+        <input type="date" id="dueDate" />
+      </div>
+    </div>
+  </div>
+
+  <!-- My Company -->
+  <div class="card">
+    <h2>自社情報</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>会社名</label>
+        <input id="myCompany" placeholder="株式会社サンプル" />
+      </div>
+      <div class="form-group">
+        <label>担当者</label>
+        <input id="myName" placeholder="山田 太郎" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>住所</label>
+        <input id="myAddress" placeholder="東京都渋谷区..." />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>TEL</label>
+        <input id="myTel" placeholder="03-1234-5678" />
+      </div>
+      <div class="form-group">
+        <label>メール</label>
+        <input id="myEmail" placeholder="info@example.com" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>登録番号（インボイス）</label>
+        <input id="myInvoiceNo" placeholder="T1234567890123" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>振込先</label>
+        <input id="myBank" placeholder="〇〇銀行 △△支店 普通 1234567 カ）サンプル" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Client -->
+  <div class="card">
+    <h2>取引先情報</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>会社名</label>
+        <input id="clientCompany" placeholder="株式会社クライアント" />
+      </div>
+      <div class="form-group">
+        <label>担当者</label>
+        <input id="clientName" placeholder="鈴木 花子" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>住所</label>
+        <input id="clientAddress" placeholder="大阪府大阪市..." />
+      </div>
+    </div>
+  </div>
+
+  <!-- Line Items -->
+  <div class="card">
+    <h2>明細</h2>
+    <div class="tax-row">
+      <label>消費税率:</label>
+      <select id="taxRate" onchange="recalc()">
+        <option value="0.10" selected>10%</option>
+        <option value="0.08">8%（軽減税率）</option>
+        <option value="0">なし</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th class="col-name">品目</th>
+            <th class="col-qty">数量</th>
+            <th class="col-unit">単位</th>
+            <th class="col-price">単価</th>
+            <th class="col-amount">金額</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+    </div>
+    <div class="actions">
+      <button class="btn btn-sm btn-outline" onclick="addItem()">+ 行を追加</button>
+    </div>
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <!-- Notes -->
+  <div class="card">
+    <h2>備考</h2>
+    <div class="form-group">
+      <textarea id="notes" rows="3" placeholder="備考・特記事項を入力"></textarea>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="card">
+    <div class="actions">
+      <button class="btn btn-primary" onclick="preview()">プレビュー / PDF出力</button>
+      <button class="btn btn-success" onclick="saveDoc()">保存</button>
+      <button class="btn btn-secondary" onclick="clearForm()">新規作成</button>
+      <button class="btn btn-secondary" onclick="convertDoc()">
+        <span id="convertLabel">請求書に変換</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Saved Documents -->
+  <div class="card">
+    <h2>保存済み書類</h2>
+    <ul class="saved-list" id="savedList"></ul>
+  </div>
+</div>
+
+<!-- Preview Overlay -->
+<div class="preview-overlay" id="previewOverlay">
+  <button class="preview-close" onclick="closePreview()">&times;</button>
+  <div class="preview-container" id="previewContent"></div>
+  <div class="preview-toolbar">
+    <button class="btn btn-primary" onclick="window.print()">PDF / 印刷</button>
+    <button class="btn btn-secondary" onclick="closePreview()">閉じる</button>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  let docType = 'quote';
+  let items = [];
+  let editingId = null;
+
+  // ── Init ──
+  function init() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('issueDate').value = today;
+    const due = new Date();
+    due.setDate(due.getDate() + 30);
+    document.getElementById('dueDate').value = due.toISOString().slice(0, 10);
+
+    loadMyCompany();
+    addItem();
+    addItem();
+    addItem();
+    renderSaved();
+    autoNumber();
+  }
+
+  // ── Doc Type ──
+  function setDocType(type) {
+    docType = type;
+    document.getElementById('btnQuote').classList.toggle('active', type === 'quote');
+    document.getElementById('btnInvoice').classList.toggle('active', type === 'invoice');
+    document.getElementById('dueDateLabel').textContent = type === 'quote' ? '見積有効期限' : '支払期限';
+    document.getElementById('convertLabel').textContent = type === 'quote' ? '請求書に変換' : '見積書に変換';
+    autoNumber();
+  }
+
+  function convertDoc() {
+    setDocType(docType === 'quote' ? 'invoice' : 'quote');
+  }
+
+  // ── Auto Number ──
+  function autoNumber() {
+    const prefix = docType === 'quote' ? 'Q' : 'INV';
+    const now = new Date();
+    const y = now.getFullYear();
+    const saved = getSavedDocs().filter(d => d.type === docType);
+    const num = String(saved.length + 1).padStart(3, '0');
+    if (!editingId) {
+      document.getElementById('docNumber').value = `${prefix}-${y}-${num}`;
+    }
+  }
+
+  // ── Items ──
+  function addItem() {
+    items.push({ name: '', qty: 1, unit: '式', price: 0 });
+    renderItems();
+  }
+
+  function removeItem(idx) {
+    if (items.length <= 1) return;
+    items.splice(idx, 1);
+    renderItems();
+    recalc();
+  }
+
+  function renderItems() {
+    const tbody = document.getElementById('itemsBody');
+    tbody.innerHTML = items.map((item, i) => `
+      <tr>
+        <td class="col-name"><input value="${esc(item.name)}" oninput="items[${i}].name=this.value" placeholder="品目名" /></td>
+        <td class="col-qty"><input type="number" value="${item.qty}" min="0" step="1" oninput="items[${i}].qty=parseFloat(this.value)||0;recalc()" /></td>
+        <td class="col-unit"><input value="${esc(item.unit)}" oninput="items[${i}].unit=this.value" placeholder="個" /></td>
+        <td class="col-price"><input type="number" value="${item.price}" min="0" oninput="items[${i}].price=parseFloat(this.value)||0;recalc()" /></td>
+        <td class="amount-cell">&yen;${fmt(item.qty * item.price)}</td>
+        <td><button class="btn-del" onclick="removeItem(${i})">&times;</button></td>
+      </tr>
+    `).join('');
+    recalc();
+  }
+
+  function recalc() {
+    const subtotal = items.reduce((s, it) => s + it.qty * it.price, 0);
+    const rate = parseFloat(document.getElementById('taxRate').value);
+    const tax = Math.floor(subtotal * rate);
+    const total = subtotal + tax;
+    const ratePct = Math.round(rate * 100);
+
+    document.getElementById('summary').innerHTML = `
+      <div class="summary-row"><span class="label">小計</span><span class="value">&yen;${fmt(subtotal)}</span></div>
+      <div class="summary-row"><span class="label">消費税(${ratePct}%)</span><span class="value">&yen;${fmt(tax)}</span></div>
+      <div class="summary-row total"><span class="label">合計</span><span class="value">&yen;${fmt(total)}</span></div>
+    `;
+  }
+
+  // ── Save / Load ──
+  function getSavedDocs() {
+    return JSON.parse(localStorage.getItem('invoice_docs') || '[]');
+  }
+
+  function saveMyCompany() {
+    const data = {
+      myCompany: gv('myCompany'), myName: gv('myName'), myAddress: gv('myAddress'),
+      myTel: gv('myTel'), myEmail: gv('myEmail'), myInvoiceNo: gv('myInvoiceNo'), myBank: gv('myBank')
+    };
+    localStorage.setItem('invoice_my_company', JSON.stringify(data));
+  }
+
+  function loadMyCompany() {
+    const data = JSON.parse(localStorage.getItem('invoice_my_company') || 'null');
+    if (!data) return;
+    sv('myCompany', data.myCompany); sv('myName', data.myName); sv('myAddress', data.myAddress);
+    sv('myTel', data.myTel); sv('myEmail', data.myEmail); sv('myInvoiceNo', data.myInvoiceNo); sv('myBank', data.myBank);
+  }
+
+  function getFormData() {
+    return {
+      id: editingId || Date.now().toString(),
+      type: docType,
+      docNumber: gv('docNumber'),
+      issueDate: gv('issueDate'),
+      dueDate: gv('dueDate'),
+      myCompany: gv('myCompany'), myName: gv('myName'), myAddress: gv('myAddress'),
+      myTel: gv('myTel'), myEmail: gv('myEmail'), myInvoiceNo: gv('myInvoiceNo'), myBank: gv('myBank'),
+      clientCompany: gv('clientCompany'), clientName: gv('clientName'), clientAddress: gv('clientAddress'),
+      taxRate: gv('taxRate'),
+      items: items.filter(it => it.name),
+      notes: gv('notes'),
+      savedAt: new Date().toISOString()
+    };
+  }
+
+  function saveDoc() {
+    saveMyCompany();
+    const data = getFormData();
+    if (!data.items.length) { alert('品目を1つ以上入力してください'); return; }
+    let docs = getSavedDocs();
+    const idx = docs.findIndex(d => d.id === data.id);
+    if (idx >= 0) docs[idx] = data; else docs.unshift(data);
+    localStorage.setItem('invoice_docs', JSON.stringify(docs));
+    editingId = data.id;
+    renderSaved();
+    alert('保存しました');
+  }
+
+  function loadDoc(id) {
+    const docs = getSavedDocs();
+    const doc = docs.find(d => d.id === id);
+    if (!doc) return;
+    editingId = doc.id;
+    setDocType(doc.type);
+    sv('docNumber', doc.docNumber); sv('issueDate', doc.issueDate); sv('dueDate', doc.dueDate);
+    sv('myCompany', doc.myCompany); sv('myName', doc.myName); sv('myAddress', doc.myAddress);
+    sv('myTel', doc.myTel); sv('myEmail', doc.myEmail); sv('myInvoiceNo', doc.myInvoiceNo); sv('myBank', doc.myBank || '');
+    sv('clientCompany', doc.clientCompany); sv('clientName', doc.clientName); sv('clientAddress', doc.clientAddress);
+    sv('taxRate', doc.taxRate); sv('notes', doc.notes);
+    items = doc.items.length ? doc.items : [{ name: '', qty: 1, unit: '式', price: 0 }];
+    renderItems();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteDoc(id) {
+    if (!confirm('この書類を削除しますか？')) return;
+    let docs = getSavedDocs().filter(d => d.id !== id);
+    localStorage.setItem('invoice_docs', JSON.stringify(docs));
+    if (editingId === id) editingId = null;
+    renderSaved();
+  }
+
+  function duplicateDoc(id) {
+    const docs = getSavedDocs();
+    const doc = docs.find(d => d.id === id);
+    if (!doc) return;
+    const newDoc = { ...doc, id: Date.now().toString(), docNumber: doc.docNumber + '-copy', savedAt: new Date().toISOString() };
+    docs.unshift(newDoc);
+    localStorage.setItem('invoice_docs', JSON.stringify(docs));
+    renderSaved();
+    loadDoc(newDoc.id);
+  }
+
+  function renderSaved() {
+    const docs = getSavedDocs();
+    const list = document.getElementById('savedList');
+    if (!docs.length) {
+      list.innerHTML = '<li class="empty-state">保存済みの書類はありません</li>';
+      return;
+    }
+    list.innerHTML = docs.map(d => {
+      const typeLabel = d.type === 'quote' ? '見積' : '請求';
+      const total = d.items.reduce((s, it) => s + it.qty * it.price, 0);
+      const tax = Math.floor(total * parseFloat(d.taxRate));
+      return `<li>
+        <div class="saved-info" onclick="loadDoc('${d.id}')">
+          <div class="saved-title">[${typeLabel}] ${esc(d.docNumber)} - ${esc(d.clientCompany || '取引先未設定')}</div>
+          <div class="saved-meta">${d.issueDate} / &yen;${fmt(total + tax)}</div>
+        </div>
+        <div class="saved-actions">
+          <button class="btn btn-sm btn-secondary" onclick="duplicateDoc('${d.id}')">複製</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteDoc('${d.id}')">削除</button>
+        </div>
+      </li>`;
+    }).join('');
+  }
+
+  function clearForm() {
+    editingId = null;
+    sv('clientCompany', ''); sv('clientName', ''); sv('clientAddress', '');
+    sv('notes', '');
+    items = [{ name: '', qty: 1, unit: '式', price: 0 }, { name: '', qty: 1, unit: '式', price: 0 }, { name: '', qty: 1, unit: '式', price: 0 }];
+    renderItems();
+    autoNumber();
+  }
+
+  // ── Preview ──
+  function preview() {
+    const d = getFormData();
+    const subtotal = d.items.reduce((s, it) => s + it.qty * it.price, 0);
+    const rate = parseFloat(d.taxRate);
+    const tax = Math.floor(subtotal * rate);
+    const total = subtotal + tax;
+    const title = d.type === 'quote' ? '見 積 書' : '請 求 書';
+    const dueLabel = d.type === 'quote' ? '見積有効期限' : 'お支払期限';
+
+    let bankHtml = '';
+    if (d.type === 'invoice' && d.myBank) {
+      bankHtml = `<div class="pv-bank"><div class="bank-title">お振込先</div><div>${esc(d.myBank)}</div></div>`;
+    }
+
+    const html = `
+      <div class="pv-title">${title}</div>
+      <div class="pv-header">
+        <div class="pv-client">
+          <div class="pv-client-name">${esc(d.clientCompany || '＿＿＿＿＿＿＿＿')} 御中</div>
+          ${d.clientName ? `<div>${esc(d.clientName)} 様</div>` : ''}
+          ${d.clientAddress ? `<div style="font-size:8pt;color:#666">${esc(d.clientAddress)}</div>` : ''}
+        </div>
+        <div class="pv-meta">
+          <div>${d.docNumber}</div>
+          <div>発行日: ${d.issueDate}</div>
+          <div>${dueLabel}: ${d.dueDate}</div>
+        </div>
+      </div>
+      <div style="text-align:right;margin-bottom:4pt;font-size:13pt;font-weight:700;color:#1a5276;">
+        合計金額: &yen;${fmt(total)}（税込）
+      </div>
+      <div class="pv-company">
+        <div class="name">${esc(d.myCompany)}</div>
+        ${d.myAddress ? `<div>${esc(d.myAddress)}</div>` : ''}
+        ${d.myTel ? `<div>TEL: ${esc(d.myTel)}</div>` : ''}
+        ${d.myEmail ? `<div>${esc(d.myEmail)}</div>` : ''}
+        ${d.myInvoiceNo ? `<div>登録番号: ${esc(d.myInvoiceNo)}</div>` : ''}
+      </div>
+      <table class="pv-table">
+        <thead><tr><th style="width:5%">No</th><th style="width:40%">品目</th><th class="right" style="width:10%">数量</th><th style="width:8%">単位</th><th class="right" style="width:18%">単価</th><th class="right" style="width:19%">金額</th></tr></thead>
+        <tbody>
+          ${d.items.map((it, i) => `<tr>
+            <td>${i + 1}</td>
+            <td>${esc(it.name)}</td>
+            <td class="right">${it.qty}</td>
+            <td>${esc(it.unit)}</td>
+            <td class="right">&yen;${fmt(it.price)}</td>
+            <td class="right">&yen;${fmt(it.qty * it.price)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="pv-summary">
+        <div>小計: &yen;${fmt(subtotal)}</div>
+        <div>消費税(${Math.round(rate * 100)}%): &yen;${fmt(tax)}</div>
+        <div class="pv-total">合計: &yen;${fmt(total)}</div>
+      </div>
+      ${bankHtml}
+      ${d.notes ? `<div class="pv-notes"><strong>備考:</strong><br/>${esc(d.notes).replace(/\n/g, '<br/>')}</div>` : ''}
+    `;
+
+    document.getElementById('previewContent').innerHTML = html;
+    document.getElementById('previewOverlay').classList.add('active');
+  }
+
+  function closePreview() {
+    document.getElementById('previewOverlay').classList.remove('active');
+  }
+
+  // ── Util ──
+  function gv(id) { return document.getElementById(id).value; }
+  function sv(id, v) { document.getElementById(id).value = v || ''; }
+  function fmt(n) { return Math.floor(n).toLocaleString('ja-JP'); }
+  function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  // ── Keyboard ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePreview();
+  });
+
+  // ── Start ──
+  init();
+</script>
+</body>
+</html>
