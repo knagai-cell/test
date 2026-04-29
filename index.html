@@ -3,853 +3,868 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 着物試着</title>
+  <title>Labola 自動予約セットアップ</title>
   <style>
-    /* ── Reset & Base ─────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; -webkit-text-size-adjust: 100%; }
     body {
       font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-      background: #faf7f4;
-      color: #2c2c2c;
+      background: #f0f4f8;
+      color: #1e293b;
       min-height: 100vh;
     }
 
-    /* ── Layout ───────────────────────────────────── */
-    .app {
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 0 0 80px;
-    }
+    /* ── Layout ── */
+    .app { max-width: 560px; margin: 0 auto; padding: 0 0 80px; }
 
-    /* ── Header ───────────────────────────────────── */
+    /* ── Header ── */
     .header {
-      background: linear-gradient(135deg, #8b1c3f 0%, #5c1230 100%);
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
       padding: 20px 20px 24px;
       text-align: center;
       position: sticky;
       top: 0;
       z-index: 10;
-      box-shadow: 0 2px 12px rgba(139,28,63,0.3);
+      box-shadow: 0 2px 12px rgba(29,78,216,0.35);
     }
-    .header h1 {
-      color: #fff;
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
+    .header h1 { color: #fff; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.08em; }
+    .header p { color: rgba(255,255,255,0.8); font-size: 0.72rem; margin-top: 4px; }
+
+    /* ── Status Badge ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #fff;
+      padding: 10px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.8rem;
+      color: #475569;
     }
-    .header p {
-      color: rgba(255,255,255,0.8);
-      font-size: 0.75rem;
-      margin-top: 4px;
-      letter-spacing: 0.05em;
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .badge.stopped  { background: #fee2e2; color: #b91c1c; }
+    .badge.running  { background: #dcfce7; color: #15803d; }
+    .badge.waiting  { background: #fef9c3; color: #a16207; }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .dot.pulse { animation: pulse 1.4s infinite; }
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
     }
 
-    /* ── Section Card ─────────────────────────────── */
+    /* ── Section Card ── */
     .section {
-      margin: 16px 16px 0;
+      margin: 14px 14px 0;
       background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border-radius: 14px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      overflow: hidden;
     }
-    .section-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: #8b1c3f;
-      text-transform: uppercase;
-      margin-bottom: 12px;
+    .section-header {
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-    .section-label::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #f0e8ec;
-    }
-
-    /* ── API Key Input ────────────────────────────── */
-    .api-key-input {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1.5px solid #e0d0d8;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-family: monospace;
-      color: #2c2c2c;
-      background: #fdf9fb;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .api-key-input:focus { border-color: #8b1c3f; background: #fff; }
-    .api-key-hint {
-      font-size: 0.7rem;
-      color: #999;
-      margin-top: 6px;
-    }
-
-    /* ── Photo Upload ─────────────────────────────── */
-    .upload-zone {
-      border: 2px dashed #d4b8c4;
-      border-radius: 14px;
-      padding: 28px 20px;
-      text-align: center;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #f1f5f9;
       cursor: pointer;
-      background: #fdf9fb;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
+      user-select: none;
     }
-    .upload-zone:hover, .upload-zone.drag-over {
-      border-color: #8b1c3f;
-      background: #fdf0f5;
-    }
-    .upload-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-    .upload-icon {
-      font-size: 2.5rem;
-      margin-bottom: 8px;
-      display: block;
-    }
-    .upload-text {
-      font-size: 0.85rem;
-      color: #8b1c3f;
-      font-weight: 600;
-    }
-    .upload-sub {
-      font-size: 0.7rem;
-      color: #aaa;
-      margin-top: 4px;
-    }
-
-    /* Photo preview */
-    .photo-preview {
-      position: relative;
-      border-radius: 14px;
-      overflow: hidden;
-      aspect-ratio: 3/4;
-      background: #f0e8ec;
-    }
-    .photo-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    .photo-preview .change-btn {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(139,28,63,0.85);
-      color: #fff;
-      border: none;
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .photo-preview input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    /* ── Kimono Selector ──────────────────────────── */
-    .kimono-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .kimono-card {
-      border-radius: 12px;
-      overflow: hidden;
-      cursor: pointer;
-      border: 2.5px solid transparent;
-      transition: all 0.2s;
-      background: #f0e8ec;
-    }
-    .kimono-card.selected {
-      border-color: #8b1c3f;
-      box-shadow: 0 0 0 3px rgba(139,28,63,0.15);
-    }
-    .kimono-card:hover { transform: translateY(-2px); }
-    .kimono-visual {
-      aspect-ratio: 2/3;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .kimono-visual svg {
-      width: 80%;
-      height: 80%;
-    }
-    .kimono-name {
-      text-align: center;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 6px 4px;
-      letter-spacing: 0.08em;
-    }
-    .kimono-check {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 20px;
-      height: 20px;
-      background: #8b1c3f;
-      border-radius: 50%;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 0.7rem;
-    }
-    .kimono-card.selected .kimono-check { display: flex; }
-
-    /* ── Generate Button ──────────────────────────── */
-    .generate-btn {
-      display: block;
-      width: calc(100% - 32px);
-      margin: 16px 16px 0;
-      padding: 16px;
-      background: linear-gradient(135deg, #8b1c3f 0%, #c0396a 100%);
-      color: #fff;
-      border: none;
-      border-radius: 14px;
+    .section-header .icon {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
       font-size: 1rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(139,28,63,0.35);
-      position: relative;
-      overflow: hidden;
+      flex-shrink: 0;
     }
-    .generate-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(139,28,63,0.45);
-    }
-    .generate-btn:disabled {
-      background: linear-gradient(135deg, #c4a0b0 0%, #d4b4c4 100%);
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-    .generate-btn .btn-icon { margin-right: 6px; }
+    .icon-blue   { background: #dbeafe; }
+    .icon-green  { background: #dcfce7; }
+    .icon-orange { background: #ffedd5; }
+    .icon-purple { background: #ede9fe; }
+    .icon-teal   { background: #ccfbf1; }
+    .section-title { font-size: 0.9rem; font-weight: 700; flex: 1; }
+    .chevron { font-size: 0.75rem; color: #94a3b8; transition: transform .2s; }
+    .chevron.open { transform: rotate(180deg); }
+    .section-body { padding: 14px 16px 16px; }
+    .section-body.collapsed { display: none; }
 
-    /* Shimmer animation on button */
-    .generate-btn::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -75%;
-      width: 50%;
-      height: 200%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transform: skewX(-20deg);
-    }
-    .generate-btn:not(:disabled):hover::after {
-      animation: shimmer 0.6s ease;
-    }
-    @keyframes shimmer {
-      from { left: -75%; }
-      to   { left: 125%; }
-    }
-
-    /* ── Loading ──────────────────────────────────── */
-    .loading-card {
-      margin: 16px 16px 0;
-      background: #fff;
-      border-radius: 16px;
-      padding: 28px 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      text-align: center;
-    }
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid #f0e8ec;
-      border-top-color: #8b1c3f;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 16px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #8b1c3f; font-weight: 600; font-size: 0.9rem; }
-    .loading-sub { color: #aaa; font-size: 0.75rem; margin-top: 6px; }
-
-    /* ── Result ───────────────────────────────────── */
-    .result-card {
-      margin: 16px 16px 0;
-      background: #fff;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .result-header {
-      background: linear-gradient(135deg, #8b1c3f 0%, #c0396a 100%);
-      padding: 14px 20px;
-      color: #fff;
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .result-image-wrap {
-      position: relative;
-      background: #f7f0f4;
-    }
-    .result-canvas {
+    /* ── Form Elements ── */
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 5px; }
+    input[type=text], input[type=email], input[type=password],
+    input[type=number], input[type=time], input[type=date],
+    select, textarea {
       width: 100%;
-      display: block;
+      padding: 9px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      font-size: 0.875rem;
+      color: #1e293b;
+      background: #f8fafc;
+      transition: border-color .15s;
+      outline: none;
+      appearance: none;
     }
-    .result-kimono-badge {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(139,28,63,0.85);
+    input:focus, select:focus, textarea:focus { border-color: #3b82f6; background: #fff; }
+    textarea { resize: vertical; min-height: 72px; }
+    .input-hint { font-size: 0.7rem; color: #94a3b8; margin-top: 4px; }
+
+    /* ── Toggle Switch ── */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0;
+    }
+    .toggle-label { font-size: 0.85rem; color: #334155; }
+    .toggle-sub   { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+    .toggle {
+      position: relative; width: 44px; height: 24px; flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: #cbd5e1; border-radius: 999px; cursor: pointer;
+      transition: background .2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute; left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform .2s;
+    }
+    .toggle input:checked + .slider { background: #3b82f6; }
+    .toggle input:checked + .slider::before { transform: translateX(20px); }
+
+    /* ── Time Slot Tags ── */
+    .time-slots { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+    .slot-tag {
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 0.78rem;
+      color: #475569;
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .slot-tag.active {
+      border-color: #3b82f6;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+    .slot-add {
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1.5px dashed #cbd5e1;
+      background: transparent;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+
+    /* ── Day-of-week selector ── */
+    .dow-row { display: flex; gap: 6px; margin-top: 8px; }
+    .dow-btn {
+      flex: 1;
+      padding: 7px 0;
+      border-radius: 8px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 0.78rem;
+      color: #475569;
+      cursor: pointer;
+      text-align: center;
+      transition: all .15s;
+      user-select: none;
+    }
+    .dow-btn.active {
+      border-color: #3b82f6;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    /* ── Priority List ── */
+    .priority-list { display: flex; flex-direction: column; gap: 8px; }
+    .priority-item {
+      display: flex; align-items: center; gap: 10px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .priority-rank {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: #3b82f6;
       color: #fff;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      letter-spacing: 0.08em;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
-    .result-body {
-      padding: 18px 20px;
+    .priority-info { flex: 1; font-size: 0.82rem; }
+    .priority-name { font-weight: 600; }
+    .priority-detail { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+    .priority-del {
+      background: none; border: none;
+      color: #cbd5e1; font-size: 1.1rem;
+      cursor: pointer; padding: 2px;
+      transition: color .15s;
     }
-    .result-desc {
-      font-size: 0.85rem;
-      line-height: 1.75;
-      color: #3c3c3c;
-      white-space: pre-wrap;
-    }
-    .result-desc-label {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #8b1c3f;
-      letter-spacing: 0.1em;
-      margin-bottom: 8px;
-    }
+    .priority-del:hover { color: #ef4444; }
 
-    /* ── Error ────────────────────────────────────── */
-    .error-card {
-      margin: 16px 16px 0;
-      background: #fff5f8;
-      border: 1.5px solid #f0c0d0;
-      border-radius: 14px;
-      padding: 16px 20px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-    .error-icon { font-size: 1.25rem; flex-shrink: 0; }
-    .error-text { font-size: 0.8rem; color: #8b1c3f; line-height: 1.6; }
-
-    /* ── Retry Button ─────────────────────────────── */
-    .retry-btn {
-      display: block;
-      width: calc(100% - 32px);
-      margin: 12px 16px 0;
+    /* ── Log ── */
+    .log-box {
+      background: #0f172a;
+      border-radius: 10px;
       padding: 12px;
-      background: #fff;
-      color: #8b1c3f;
-      border: 2px solid #8b1c3f;
-      border-radius: 12px;
-      font-size: 0.85rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      max-height: 200px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .log-line { padding: 1px 0; }
+    .log-line.ok   { color: #4ade80; }
+    .log-line.warn { color: #fbbf24; }
+    .log-line.err  { color: #f87171; }
+    .log-line.info { color: #60a5fa; }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+    .btn {
+      flex: 1;
+      padding: 12px 0;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.875rem;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: opacity .15s, transform .1s;
     }
-    .retry-btn:hover { background: #fdf0f5; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger  { background: #ef4444; color: #fff; }
+    .btn-danger:hover  { background: #dc2626; }
+    .btn-ghost {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1.5px solid #e2e8f0;
+    }
+    .btn-ghost:hover { background: #e2e8f0; }
 
-    /* ── Utilities ────────────────────────────────── */
-    .hidden { display: none !important; }
-
-    /* ── Pattern overlay colors for canvas ─────────── */
+    /* ── Notification result cards ── */
+    .result-cards { display: flex; flex-direction: column; gap: 8px; }
+    .result-card {
+      display: flex; align-items: center; gap: 10px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.82rem;
+    }
+    .result-card.success { background: #dcfce7; border: 1.5px solid #86efac; }
+    .result-card.fail    { background: #fee2e2; border: 1.5px solid #fca5a5; }
+    .result-card.pending { background: #fef9c3; border: 1.5px solid #fde68a; }
+    .result-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .result-info { flex: 1; }
+    .result-title { font-weight: 600; }
+    .result-meta  { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
   </style>
 </head>
 <body>
-
 <div class="app">
 
   <!-- Header -->
-  <header class="header">
-    <h1>👘 AI 着物試着</h1>
-    <p>写真をアップして、AIで着物のイメージを生成</p>
-  </header>
-
-  <!-- Section 0: API Key -->
-  <section class="section">
-    <div class="section-label">🔑 Anthropic API Key</div>
-    <input
-      type="password"
-      id="apiKey"
-      class="api-key-input"
-      placeholder="sk-ant-..."
-      autocomplete="off"
-    />
-    <p class="api-key-hint">※ APIキーはブラウザ内のみで使用され、外部には送信されません</p>
-  </section>
-
-  <!-- Section 1: Photo Upload -->
-  <section class="section">
-    <div class="section-label">📷 写真アップロード</div>
-
-    <!-- Upload zone (shown when no photo) -->
-    <div id="uploadZone" class="upload-zone">
-      <input type="file" id="fileInput" accept="image/*" />
-      <span class="upload-icon">🤳</span>
-      <div class="upload-text">タップして写真を選ぶ</div>
-      <div class="upload-sub">JPG / PNG / WEBP · 最大10MB</div>
-    </div>
-
-    <!-- Photo preview (hidden until photo loaded) -->
-    <div id="photoPreview" class="photo-preview hidden">
-      <img id="previewImg" src="" alt="アップロード写真" />
-      <label class="change-btn">
-        📂 変更
-        <input type="file" id="fileInputChange" accept="image/*" />
-      </label>
-    </div>
-  </section>
-
-  <!-- Section 2: Kimono Selection -->
-  <section class="section">
-    <div class="section-label">👘 着物を選ぶ</div>
-    <div class="kimono-grid" id="kimonoGrid">
-
-      <!-- Kimono 1: Sakura -->
-      <div class="kimono-card" data-id="sakura" data-name="桜染め" onclick="selectKimono(this)">
-        <div class="kimono-visual" style="background: linear-gradient(160deg, #fce4ec, #f8bbd0, #f48fb1);">
-          <div class="kimono-check">✓</div>
-          <svg viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Kimono shape -->
-            <path d="M50 10 L20 40 L15 140 L85 140 L80 40 Z" fill="rgba(240,120,160,0.6)" stroke="#c06080" stroke-width="2"/>
-            <!-- Collar left -->
-            <path d="M50 10 L35 50 L50 55" fill="none" stroke="#c06080" stroke-width="2.5"/>
-            <!-- Collar right -->
-            <path d="M50 10 L65 50 L50 55" fill="none" stroke="#c06080" stroke-width="2.5"/>
-            <!-- Obi (sash) -->
-            <rect x="20" y="75" width="60" height="18" rx="3" fill="rgba(180,50,80,0.5)" stroke="#a03060" stroke-width="1.5"/>
-            <!-- Sakura petals pattern -->
-            <circle cx="35" cy="60" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="65" cy="55" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="30" cy="100" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="70" cy="110" r="3" fill="rgba(255,255,255,0.6)"/>
-            <circle cx="50" cy="120" r="3" fill="rgba(255,255,255,0.6)"/>
-            <!-- Sleeves -->
-            <path d="M15 40 L5 85 L20 85 L20 40" fill="rgba(240,120,160,0.5)" stroke="#c06080" stroke-width="1.5"/>
-            <path d="M85 40 L95 85 L80 85 L80 40" fill="rgba(240,120,160,0.5)" stroke="#c06080" stroke-width="1.5"/>
-          </svg>
-        </div>
-        <div class="kimono-name" style="color:#c06080; background:#fce4ec;">桜染め</div>
-      </div>
-
-      <!-- Kimono 2: Indigo -->
-      <div class="kimono-card" data-id="indigo" data-name="藍染め" onclick="selectKimono(this)">
-        <div class="kimono-visual" style="background: linear-gradient(160deg, #e3f2fd, #90caf9, #42a5f5);">
-          <div class="kimono-check">✓</div>
-          <svg viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M50 10 L20 40 L15 140 L85 140 L80 40 Z" fill="rgba(30,80,160,0.65)" stroke="#1a4090" stroke-width="2"/>
-            <path d="M50 10 L35 50 L50 55" fill="none" stroke="#1a4090" stroke-width="2.5"/>
-            <path d="M50 10 L65 50 L50 55" fill="none" stroke="#1a4090" stroke-width="2.5"/>
-            <rect x="20" y="75" width="60" height="18" rx="3" fill="rgba(10,50,120,0.6)" stroke="#0a3280" stroke-width="1.5"/>
-            <!-- Wave pattern -->
-            <path d="M20 60 Q30 55 40 60 Q50 65 60 60 Q70 55 80 60" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-            <path d="M20 100 Q30 95 40 100 Q50 105 60 100 Q70 95 80 100" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-            <path d="M20 120 Q30 115 40 120 Q50 125 60 120 Q70 115 80 120" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-            <path d="M15 40 L5 85 L20 85 L20 40" fill="rgba(30,80,160,0.55)" stroke="#1a4090" stroke-width="1.5"/>
-            <path d="M85 40 L95 85 L80 85 L80 40" fill="rgba(30,80,160,0.55)" stroke="#1a4090" stroke-width="1.5"/>
-          </svg>
-        </div>
-        <div class="kimono-name" style="color:#1a4090; background:#e3f2fd;">藍染め</div>
-      </div>
-
-      <!-- Kimono 3: Gold -->
-      <div class="kimono-card" data-id="gold" data-name="金彩鶴" onclick="selectKimono(this)">
-        <div class="kimono-visual" style="background: linear-gradient(160deg, #fff8e1, #ffe082, #ffd740);">
-          <div class="kimono-check">✓</div>
-          <svg viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M50 10 L20 40 L15 140 L85 140 L80 40 Z" fill="rgba(200,140,0,0.55)" stroke="#a07000" stroke-width="2"/>
-            <path d="M50 10 L35 50 L50 55" fill="none" stroke="#a07000" stroke-width="2.5"/>
-            <path d="M50 10 L65 50 L50 55" fill="none" stroke="#a07000" stroke-width="2.5"/>
-            <rect x="20" y="75" width="60" height="18" rx="3" fill="rgba(140,80,0,0.5)" stroke="#805000" stroke-width="1.5"/>
-            <!-- Crane motif -->
-            <path d="M45 55 L35 65 M45 55 L55 60 M45 55 L42 45" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="42" cy="43" r="3" fill="rgba(255,255,255,0.7)"/>
-            <!-- Gold accents -->
-            <circle cx="30" cy="105" r="4" fill="rgba(255,255,255,0.5)"/>
-            <circle cx="70" cy="95" r="3" fill="rgba(255,255,255,0.5)"/>
-            <circle cx="55" cy="118" r="3" fill="rgba(255,255,255,0.5)"/>
-            <path d="M15 40 L5 85 L20 85 L20 40" fill="rgba(200,140,0,0.5)" stroke="#a07000" stroke-width="1.5"/>
-            <path d="M85 40 L95 85 L80 85 L80 40" fill="rgba(200,140,0,0.5)" stroke="#a07000" stroke-width="1.5"/>
-          </svg>
-        </div>
-        <div class="kimono-name" style="color:#a07000; background:#fff8e1;">金彩鶴</div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- Generate Button -->
-  <button class="generate-btn" id="generateBtn" disabled onclick="generate()">
-    <span class="btn-icon">✨</span> 着用イメージを生成
-  </button>
-
-  <!-- Loading State -->
-  <div id="loadingCard" class="loading-card hidden">
-    <div class="spinner"></div>
-    <div class="loading-text">AIが着物姿を生成中...</div>
-    <div class="loading-sub" id="loadingStatus">写真を解析しています</div>
+  <div class="header">
+    <h1>⚡ Labola 自動予約</h1>
+    <p>施設の空き枠を自動でチェック・予約します</p>
   </div>
 
-  <!-- Error State -->
-  <div id="errorCard" class="error-card hidden">
-    <div class="error-icon">⚠️</div>
-    <div class="error-text" id="errorText">エラーが発生しました</div>
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span id="status-badge" class="badge stopped">
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">停止中</span>
+    </span>
+    <span id="status-detail">次回チェック: 未設定</span>
   </div>
-  <button class="retry-btn hidden" id="retryBtn" onclick="resetResult()">もう一度試す</button>
 
-  <!-- Result -->
-  <div id="resultCard" class="result-card hidden">
-    <div class="result-header">
-      ✨ AI 生成結果
-      <span id="resultKimonoName" style="margin-left:auto; font-size:0.75rem; opacity:0.9;"></span>
+  <!-- ① Account -->
+  <div class="section" id="sec-account">
+    <div class="section-header" onclick="toggleSection('account')">
+      <div class="icon icon-blue">👤</div>
+      <span class="section-title">Labola アカウント</span>
+      <span class="chevron open" id="chev-account">▼</span>
     </div>
-    <div class="result-image-wrap">
-      <canvas id="resultCanvas" class="result-canvas"></canvas>
-      <div class="result-kimono-badge" id="resultBadge"></div>
-    </div>
-    <div class="result-body">
-      <div class="result-desc-label">🤖 AI の着用イメージ解説</div>
-      <div class="result-desc" id="resultDesc"></div>
+    <div class="section-body" id="body-account">
+      <div class="field">
+        <label>メールアドレス</label>
+        <input type="email" id="labola-email" placeholder="example@email.com" />
+      </div>
+      <div class="field">
+        <label>パスワード</label>
+        <input type="password" id="labola-pass" placeholder="••••••••" />
+        <div class="input-hint">認証情報はブラウザのローカルストレージにのみ保存されます</div>
+      </div>
+      <div class="field">
+        <label>地域 / 都道府県</label>
+        <select id="labola-region">
+          <option value="">-- 選択してください --</option>
+          <option>東京都</option><option>神奈川県</option><option>大阪府</option>
+          <option>愛知県</option><option>埼玉県</option><option>千葉県</option>
+          <option>兵庫県</option><option>北海道</option><option>福岡県</option>
+          <option>京都府</option><option>その他</option>
+        </select>
+      </div>
     </div>
   </div>
 
-</div><!-- /app -->
+  <!-- ② Target Facilities -->
+  <div class="section" id="sec-facilities">
+    <div class="section-header" onclick="toggleSection('facilities')">
+      <div class="icon icon-green">🏟️</div>
+      <span class="section-title">予約対象施設</span>
+      <span class="chevron open" id="chev-facilities">▼</span>
+    </div>
+    <div class="section-body" id="body-facilities">
+      <div class="field">
+        <label>施設名キーワード</label>
+        <input type="text" id="facility-keyword" placeholder="例: 代々木、テニスコート" />
+        <div class="input-hint">部分一致で施設を絞り込みます</div>
+      </div>
+      <div class="field">
+        <label>スポーツ種別</label>
+        <select id="sport-type">
+          <option value="">-- すべて --</option>
+          <option>テニス</option><option>バドミントン</option><option>バスケットボール</option>
+          <option>フットサル</option><option>卓球</option><option>バレーボール</option>
+          <option>野球</option><option>水泳</option><option>ランニング</option><option>その他</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>優先施設リスト（上から優先順）</label>
+        <div class="priority-list" id="priority-list">
+          <div class="priority-item">
+            <div class="priority-rank">1</div>
+            <div class="priority-info">
+              <div class="priority-name">代々木公園テニスコート</div>
+              <div class="priority-detail">東京都渋谷区 / テニス</div>
+            </div>
+            <button class="priority-del" onclick="removePriority(this)" title="削除">×</button>
+          </div>
+          <div class="priority-item">
+            <div class="priority-rank">2</div>
+            <div class="priority-info">
+              <div class="priority-name">駒沢オリンピック公園</div>
+              <div class="priority-detail">東京都世田谷区 / テニス</div>
+            </div>
+            <button class="priority-del" onclick="removePriority(this)" title="削除">×</button>
+          </div>
+        </div>
+        <button class="btn btn-ghost" style="margin-top:10px;width:100%;font-size:0.8rem;padding:8px" onclick="addFacilityPrompt()">＋ 施設を追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ Schedule -->
+  <div class="section" id="sec-schedule">
+    <div class="section-header" onclick="toggleSection('schedule')">
+      <div class="icon icon-orange">📅</div>
+      <span class="section-title">希望日程・時間帯</span>
+      <span class="chevron open" id="chev-schedule">▼</span>
+    </div>
+    <div class="section-body" id="body-schedule">
+      <div class="field">
+        <label>希望曜日</label>
+        <div class="dow-row" id="dow-row">
+          <div class="dow-btn" onclick="toggleDow(this)">月</div>
+          <div class="dow-btn active" onclick="toggleDow(this)">火</div>
+          <div class="dow-btn" onclick="toggleDow(this)">水</div>
+          <div class="dow-btn active" onclick="toggleDow(this)">木</div>
+          <div class="dow-btn" onclick="toggleDow(this)">金</div>
+          <div class="dow-btn active" onclick="toggleDow(this)">土</div>
+          <div class="dow-btn active" onclick="toggleDow(this)">日</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>予約対象期間</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="date" id="date-from" style="flex:1" />
+          <span style="color:#94a3b8;font-size:0.8rem">〜</span>
+          <input type="date" id="date-to"   style="flex:1" />
+        </div>
+      </div>
+      <div class="field">
+        <label>希望時間帯（複数選択可）</label>
+        <div class="time-slots" id="time-slots">
+          <div class="slot-tag" onclick="toggleSlot(this)">早朝 6:00〜8:00</div>
+          <div class="slot-tag active" onclick="toggleSlot(this)">午前 9:00〜12:00</div>
+          <div class="slot-tag active" onclick="toggleSlot(this)">昼  12:00〜15:00</div>
+          <div class="slot-tag" onclick="toggleSlot(this)">午後 15:00〜18:00</div>
+          <div class="slot-tag" onclick="toggleSlot(this)">夕方 18:00〜21:00</div>
+          <div class="slot-add" onclick="addCustomSlot()">＋</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>1コマあたりの利用時間</label>
+        <select id="duration">
+          <option>1時間</option><option selected>2時間</option>
+          <option>3時間</option><option>4時間以上</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ Automation -->
+  <div class="section" id="sec-auto">
+    <div class="section-header" onclick="toggleSection('auto')">
+      <div class="icon icon-purple">⚙️</div>
+      <span class="section-title">自動化設定</span>
+      <span class="chevron open" id="chev-auto">▼</span>
+    </div>
+    <div class="section-body" id="body-auto">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">空き枠の自動予約</div>
+          <div class="toggle-sub">条件に合う枠が見つかり次第、即時予約します</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="auto-book" checked /><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">キャンセル待ち</div>
+          <div class="toggle-sub">満員の場合はキャンセル待ちリストに登録します</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="auto-waitlist" /><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">重複予約を防止</div>
+          <div class="toggle-sub">同日・同時間帯への二重予約をブロックします</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="no-dup" checked /><span class="slider"></span></label>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>チェック間隔</label>
+        <select id="check-interval">
+          <option>5分ごと</option><option selected>15分ごと</option>
+          <option>30分ごと</option><option>1時間ごと</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>予約開始タイミング（公開日からの経過時間）</label>
+        <select id="book-timing">
+          <option>公開即時（0秒）</option>
+          <option selected>30秒後</option>
+          <option>1分後</option>
+          <option>5分後</option>
+        </select>
+        <div class="input-hint">Labola の予約公開直後に競争を避けるため遅延を設定できます</div>
+      </div>
+      <div class="field">
+        <label>月あたり最大予約数</label>
+        <input type="number" id="max-reserve" value="4" min="1" max="30" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ Notification -->
+  <div class="section" id="sec-notify">
+    <div class="section-header" onclick="toggleSection('notify')">
+      <div class="icon icon-teal">🔔</div>
+      <span class="section-title">通知設定</span>
+      <span class="chevron" id="chev-notify">▼</span>
+    </div>
+    <div class="section-body collapsed" id="body-notify">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">予約成功時に通知</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="notify-success" checked /><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">エラー発生時に通知</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="notify-error" checked /><span class="slider"></span></label>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>LINE Notify トークン（任意）</label>
+        <input type="text" id="line-token" placeholder="Bearer xxxxx..." />
+        <div class="input-hint">LINE Notify からトークンを取得して設定すると LINE に通知が届きます</div>
+      </div>
+      <div class="field">
+        <label>メール通知先（任意）</label>
+        <input type="email" id="notify-email" placeholder="example@email.com" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ Log -->
+  <div class="section" id="sec-log">
+    <div class="section-header" onclick="toggleSection('log')">
+      <div class="icon icon-blue">📋</div>
+      <span class="section-title">実行ログ</span>
+      <span class="chevron" id="chev-log">▼</span>
+    </div>
+    <div class="section-body collapsed" id="body-log">
+      <div class="log-box" id="log-box">
+        <div class="log-line info">[2026-04-29 09:00:00] システム起動 — 設定を読み込みました</div>
+        <div class="log-line">[2026-04-29 09:00:01] 認証情報が未設定です。アカウントを設定してください</div>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:10px;width:100%;font-size:0.78rem;padding:8px" onclick="clearLog()">ログをクリア</button>
+    </div>
+  </div>
+
+  <!-- ⑦ Results -->
+  <div class="section" id="sec-results">
+    <div class="section-header" onclick="toggleSection('results')">
+      <div class="icon icon-green">✅</div>
+      <span class="section-title">予約結果</span>
+      <span class="chevron" id="chev-results">▼</span>
+    </div>
+    <div class="section-body collapsed" id="body-results">
+      <div class="result-cards" id="result-cards">
+        <div class="result-card pending">
+          <div class="result-icon">⏳</div>
+          <div class="result-info">
+            <div class="result-title">まだ予約はありません</div>
+            <div class="result-meta">自動予約を開始すると、ここに結果が表示されます</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Buttons -->
+  <div style="margin: 16px 14px 0;">
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-start" onclick="startReserve()">▶ 自動予約を開始</button>
+      <button class="btn btn-ghost" onclick="saveSettings()">💾 設定を保存</button>
+    </div>
+    <div class="btn-row" id="stop-row" style="display:none">
+      <button class="btn btn-danger" onclick="stopReserve()">⏹ 停止</button>
+    </div>
+  </div>
+
+</div>
 
 <script>
-  // ── State ────────────────────────────────────────
-  let uploadedDataURL = null;
-  let selectedKimono = null;
-
-  const KIMONOS = {
-    sakura: {
-      name: '桜染め',
-      description: '淡いピンク色を基調とし、桜の花びらが散りばめられた優美な着物。春の宴や女性らしさを引き立てる一着。',
-      color1: '#f8bbd0',
-      color2: '#f48fb1',
-      pattern: 'sakura',
-      accent: '#c06080',
-    },
-    indigo: {
-      name: '藍染め',
-      description: '深い藍色に白抜きの波紋が美しい伝統的な藍染め着物。凛とした知性と落ち着きを演出する格調ある一着。',
-      color1: '#90caf9',
-      color2: '#1565c0',
-      pattern: 'wave',
-      accent: '#1a4090',
-    },
-    gold: {
-      name: '金彩鶴',
-      description: '黄金色の地に金彩の鶴が舞う格調高い着物。慶事や特別な場面で存在感を放つ華やかな一着。',
-      color1: '#ffe082',
-      color2: '#f9a825',
-      pattern: 'crane',
-      accent: '#a07000',
-    },
-  };
-
-  // ── UI Helpers ───────────────────────────────────
-  function $(id) { return document.getElementById(id); }
-
-  function updateGenerateBtn() {
-    $('generateBtn').disabled = !(uploadedDataURL && selectedKimono && $('apiKey').value.trim());
-  }
-
-  // ── Photo Upload ─────────────────────────────────
-  function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedDataURL = e.target.result;
-      $('previewImg').src = uploadedDataURL;
-      $('uploadZone').classList.add('hidden');
-      $('photoPreview').classList.remove('hidden');
-      updateGenerateBtn();
-    };
-    reader.readAsDataURL(file);
-  }
-
-  $('fileInput').addEventListener('change', (e) => handleFile(e.target.files[0]));
-  $('fileInputChange').addEventListener('change', (e) => handleFile(e.target.files[0]));
-  $('apiKey').addEventListener('input', updateGenerateBtn);
-
-  // Drag & drop
-  const zone = $('uploadZone');
-  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-    handleFile(e.dataTransfer.files[0]);
-  });
-
-  // ── Kimono Selection ─────────────────────────────
-  function selectKimono(card) {
-    document.querySelectorAll('.kimono-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    selectedKimono = card.dataset.id;
-    updateGenerateBtn();
-  }
-
-  // ── Canvas Composite ─────────────────────────────
-  function drawComposite(kimono) {
-    const canvas = $('resultCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => {
-      // 3:4 portrait ratio
-      const w = img.naturalWidth;
-      const h = img.naturalHeight;
-      const targetW = 480;
-      const targetH = Math.round(targetW * (h / w));
-      canvas.width = targetW;
-      canvas.height = targetH;
-
-      // Draw base photo
-      ctx.drawImage(img, 0, 0, targetW, targetH);
-
-      // Kimono color overlay (lower body)
-      const overlayTop = targetH * 0.35;
-      const overlayH = targetH * 0.65;
-      const grad = ctx.createLinearGradient(0, overlayTop, 0, targetH);
-      grad.addColorStop(0, hexToRgba(kimono.color1, 0));
-      grad.addColorStop(0.25, hexToRgba(kimono.color1, 0.45));
-      grad.addColorStop(1, hexToRgba(kimono.color2, 0.6));
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, overlayTop, targetW, overlayH);
-
-      // Pattern layer
-      drawPattern(ctx, kimono, targetW, targetH);
-
-      // Subtle vignette
-      const vig = ctx.createRadialGradient(targetW/2, targetH/2, targetH*0.3, targetW/2, targetH/2, targetH*0.8);
-      vig.addColorStop(0, 'rgba(0,0,0,0)');
-      vig.addColorStop(1, 'rgba(0,0,0,0.25)');
-      ctx.fillStyle = vig;
-      ctx.fillRect(0, 0, targetW, targetH);
-    };
-    img.src = uploadedDataURL;
-  }
-
-  function drawPattern(ctx, kimono, w, h) {
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    if (kimono.pattern === 'sakura') {
-      for (let i = 0; i < 18; i++) {
-        const x = Math.random() * w;
-        const y = h * 0.4 + Math.random() * h * 0.55;
-        drawSakura(ctx, x, y, 10 + Math.random() * 14, kimono.accent);
-      }
-    } else if (kimono.pattern === 'wave') {
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = 2;
-      for (let row = 0; row < 6; row++) {
-        const y = h * 0.45 + row * (h * 0.09);
-        ctx.beginPath();
-        for (let x = 0; x <= w; x += 4) {
-          const wy = y + Math.sin((x / w) * Math.PI * 4) * 8;
-          row === 0 && x === 0 ? ctx.moveTo(x, wy) : ctx.lineTo(x, wy);
-        }
-        ctx.stroke();
-      }
-    } else if (kimono.pattern === 'crane') {
-      for (let i = 0; i < 5; i++) {
-        const x = 60 + Math.random() * (w - 120);
-        const y = h * 0.45 + Math.random() * h * 0.45;
-        drawCrane(ctx, x, y, 20 + Math.random() * 16);
-      }
+  /* ── Section collapse ── */
+  function toggleSection(id) {
+    const body = document.getElementById('body-' + id);
+    const chev = document.getElementById('chev-' + id);
+    if (body.classList.contains('collapsed')) {
+      body.classList.remove('collapsed');
+      chev.classList.add('open');
+    } else {
+      body.classList.add('collapsed');
+      chev.classList.remove('open');
     }
-    ctx.restore();
   }
 
-  function drawSakura(ctx, x, y, r, color) {
-    ctx.fillStyle = color;
-    for (let i = 0; i < 5; i++) {
-      const angle = (i * 72 - 90) * Math.PI / 180;
-      ctx.beginPath();
-      ctx.ellipse(
-        x + Math.cos(angle) * r * 0.55,
-        y + Math.sin(angle) * r * 0.55,
-        r * 0.45, r * 0.28,
-        angle, 0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(255,200,210,0.8)';
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.2, 0, Math.PI * 2);
-    ctx.fill();
+  /* ── Day-of-week toggle ── */
+  function toggleDow(el) { el.classList.toggle('active'); }
+
+  /* ── Time slot toggle ── */
+  function toggleSlot(el) { el.classList.toggle('active'); }
+
+  /* ── Add custom time slot ── */
+  function addCustomSlot() {
+    const input = prompt('時間帯を入力してください（例: 7:00〜9:00）');
+    if (!input) return;
+    const container = document.getElementById('time-slots');
+    const addBtn = container.querySelector('.slot-add');
+    const tag = document.createElement('div');
+    tag.className = 'slot-tag active';
+    tag.textContent = input;
+    tag.onclick = function() { this.classList.toggle('active'); };
+    container.insertBefore(tag, addBtn);
   }
 
-  function drawCrane(ctx, x, y, s) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    // Body
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + s, y - s * 0.3);
-    ctx.stroke();
-    // Neck & head
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - s * 0.3, y - s * 0.7);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x - s * 0.3, y - s * 0.85, s * 0.15, 0, Math.PI * 2);
-    ctx.stroke();
-    // Wings
-    ctx.beginPath();
-    ctx.moveTo(x + s * 0.3, y - s * 0.1);
-    ctx.lineTo(x + s * 0.2, y - s * 0.6);
-    ctx.lineTo(x + s * 0.7, y - s * 0.2);
-    ctx.stroke();
-    // Tail
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - s * 0.4, y + s * 0.3);
-    ctx.stroke();
+  /* ── Remove facility ── */
+  function removePriority(btn) {
+    btn.closest('.priority-item').remove();
+    reorderPriority();
   }
 
-  function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1,3), 16);
-    const g = parseInt(hex.slice(3,5), 16);
-    const b = parseInt(hex.slice(5,7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
-
-  // ── Claude API Call ───────────────────────────────
-  async function callClaude(apiKey, photoBase64, photoMime, kimono) {
-    const prompt = `あなたは着物スタイリストのAIです。
-添付された写真の人物が「${kimono.name}」を着用したときの着用イメージを、
-以下の視点から日本語で詳しく描写してください（200〜300文字程度）：
-・着物の色や柄が人物にどう映えるか
-・全体的な雰囲気・印象
-・どんなシーンや季節に似合うか
-・おすすめの帯や小物の合わせ方
-
-${kimono.description}`;
-
-    const body = {
-      model: 'claude-opus-4-6',
-      max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: photoMime,
-              data: photoBase64,
-            },
-          },
-          { type: 'text', text: prompt },
-        ],
-      }],
-    };
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-client-side-api-key-override': 'true',
-      },
-      body: JSON.stringify(body),
+  function reorderPriority() {
+    document.querySelectorAll('#priority-list .priority-rank').forEach((el, i) => {
+      el.textContent = i + 1;
     });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `API エラー (${res.status})`);
-    }
-    const data = await res.json();
-    return data.content.find(b => b.type === 'text')?.text || '';
   }
 
-  // ── Generate ─────────────────────────────────────
-  async function generate() {
-    if (!uploadedDataURL || !selectedKimono) return;
-    const apiKey = $('apiKey').value.trim();
-    if (!apiKey) { alert('APIキーを入力してください'); return; }
+  /* ── Add facility ── */
+  function addFacilityPrompt() {
+    const name = prompt('施設名を入力してください');
+    if (!name) return;
+    const detail = prompt('詳細（地区 / スポーツ）を入力してください') || '未設定';
+    const list = document.getElementById('priority-list');
+    const rank = list.querySelectorAll('.priority-item').length + 1;
+    const item = document.createElement('div');
+    item.className = 'priority-item';
+    item.innerHTML = `
+      <div class="priority-rank">${rank}</div>
+      <div class="priority-info">
+        <div class="priority-name">${escHtml(name)}</div>
+        <div class="priority-detail">${escHtml(detail)}</div>
+      </div>
+      <button class="priority-del" onclick="removePriority(this)" title="削除">×</button>
+    `;
+    list.appendChild(item);
+  }
 
-    const kimono = KIMONOS[selectedKimono];
+  function escHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
 
-    // Show loading
-    setView('loading');
-    $('loadingStatus').textContent = '写真を解析しています...';
+  /* ── Persist settings ── */
+  function saveSettings() {
+    const cfg = {
+      email:    document.getElementById('labola-email').value,
+      region:   document.getElementById('labola-region').value,
+      keyword:  document.getElementById('facility-keyword').value,
+      sport:    document.getElementById('sport-type').value,
+      dateFrom: document.getElementById('date-from').value,
+      dateTo:   document.getElementById('date-to').value,
+      duration: document.getElementById('duration').value,
+      interval: document.getElementById('check-interval').value,
+      timing:   document.getElementById('book-timing').value,
+      maxRes:   document.getElementById('max-reserve').value,
+      autoBook: document.getElementById('auto-book').checked,
+      waitlist: document.getElementById('auto-waitlist').checked,
+      noDup:    document.getElementById('no-dup').checked,
+      lineToken:document.getElementById('line-token').value,
+      notifyEmail: document.getElementById('notify-email').value,
+    };
+    // Store password separately (not logged)
+    const pass = document.getElementById('labola-pass').value;
+    if (pass) localStorage.setItem('labola_pass', btoa(pass));
+    localStorage.setItem('labola_cfg', JSON.stringify(cfg));
+    appendLog('設定を保存しました', 'ok');
+    showToast('設定を保存しました ✓');
+  }
 
+  function loadSettings() {
     try {
-      // Parse data URL
-      const [header, b64] = uploadedDataURL.split(',');
-      const mime = header.match(/:(.*?);/)[1];
+      const raw = localStorage.getItem('labola_cfg');
+      if (!raw) return;
+      const cfg = JSON.parse(raw);
+      if (cfg.email)    document.getElementById('labola-email').value = cfg.email;
+      if (cfg.region)   document.getElementById('labola-region').value = cfg.region;
+      if (cfg.keyword)  document.getElementById('facility-keyword').value = cfg.keyword;
+      if (cfg.sport)    document.getElementById('sport-type').value = cfg.sport;
+      if (cfg.dateFrom) document.getElementById('date-from').value = cfg.dateFrom;
+      if (cfg.dateTo)   document.getElementById('date-to').value = cfg.dateTo;
+      if (cfg.duration) document.getElementById('duration').value = cfg.duration;
+      if (cfg.interval) document.getElementById('check-interval').value = cfg.interval;
+      if (cfg.timing)   document.getElementById('book-timing').value = cfg.timing;
+      if (cfg.maxRes)   document.getElementById('max-reserve').value = cfg.maxRes;
+      document.getElementById('auto-book').checked  = !!cfg.autoBook;
+      document.getElementById('auto-waitlist').checked = !!cfg.waitlist;
+      document.getElementById('no-dup').checked     = !!cfg.noDup;
+      if (cfg.lineToken)    document.getElementById('line-token').value = cfg.lineToken;
+      if (cfg.notifyEmail)  document.getElementById('notify-email').value = cfg.notifyEmail;
+      const pass = localStorage.getItem('labola_pass');
+      if (pass) document.getElementById('labola-pass').value = atob(pass);
+      appendLog('保存済み設定を復元しました', 'info');
+    } catch(e) { /* ignore */ }
+  }
 
-      $('loadingStatus').textContent = 'Claude AIが着物姿を想像中...';
-      const description = await callClaude(apiKey, b64, mime, kimono);
+  /* ── Toast ── */
+  function showToast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      Object.assign(t.style, {
+        position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+        background: '#1e293b', color: '#fff', padding: '10px 20px',
+        borderRadius: '999px', fontSize: '0.8rem', zIndex: '999',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.25)', whiteSpace: 'nowrap'
+      });
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+  }
 
-      // Draw canvas composite
-      drawComposite(kimono);
+  /* ── Log ── */
+  function appendLog(msg, type = '') {
+    const box = document.getElementById('log-box');
+    const now = new Date().toLocaleString('ja-JP', { hour12: false });
+    const line = document.createElement('div');
+    line.className = 'log-line' + (type ? ' ' + type : '');
+    line.textContent = `[${now}] ${msg}`;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
 
-      // Update result UI
-      $('resultKimonoName').textContent = kimono.name;
-      $('resultBadge').textContent = '👘 ' + kimono.name;
-      $('resultDesc').textContent = description || '（説明の生成に失敗しました）';
+  function clearLog() {
+    document.getElementById('log-box').innerHTML = '';
+    appendLog('ログをクリアしました', 'info');
+  }
 
-      setView('result');
-    } catch (e) {
-      $('errorText').textContent = e.message || '不明なエラーが発生しました';
-      setView('error');
+  /* ── Status updates ── */
+  function setStatus(state) {
+    const badge  = document.getElementById('status-badge');
+    const dot    = document.getElementById('status-dot');
+    const text   = document.getElementById('status-text');
+    badge.className = 'badge ' + state;
+    if (state === 'running') {
+      dot.classList.add('pulse');
+      text.textContent = '稼働中';
+    } else if (state === 'waiting') {
+      dot.classList.add('pulse');
+      text.textContent = '待機中';
+    } else {
+      dot.classList.remove('pulse');
+      text.textContent = '停止中';
     }
   }
 
-  function setView(state) {
-    $('loadingCard').classList.toggle('hidden', state !== 'loading');
-    $('errorCard').classList.toggle('hidden', state !== 'error');
-    $('retryBtn').classList.toggle('hidden', state !== 'error');
-    $('resultCard').classList.toggle('hidden', state !== 'result');
+  /* ── Simulate start / stop ── */
+  let checkTimer = null;
+  let checkCount = 0;
 
-    if (state !== 'hidden') {
-      setTimeout(() => {
-        const el = state === 'result' ? $('resultCard') :
-                   state === 'error' ? $('errorCard') :
-                   $('loadingCard');
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+  function startReserve() {
+    const email = document.getElementById('labola-email').value.trim();
+    const pass  = document.getElementById('labola-pass').value.trim();
+    if (!email || !pass) {
+      showToast('⚠ メールアドレスとパスワードを入力してください');
+      return;
     }
+    const region  = document.getElementById('labola-region').value;
+    if (!region) {
+      showToast('⚠ 地域を選択してください');
+      return;
+    }
+
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('stop-row').style.display = 'flex';
+    setStatus('running');
+
+    const intervalMap = { '5分ごと': 5, '15分ごと': 15, '30分ごと': 30, '1時間ごと': 60 };
+    const intervalMin = intervalMap[document.getElementById('check-interval').value] || 15;
+    const intervalMs  = intervalMin * 60 * 1000;
+
+    appendLog('自動予約を開始しました', 'ok');
+    appendLog(`チェック間隔: ${intervalMin}分 / 対象施設数: ${document.querySelectorAll('#priority-list .priority-item').length}件`, 'info');
+
+    // Open log section for visibility
+    const logBody = document.getElementById('body-log');
+    if (logBody.classList.contains('collapsed')) toggleSection('log');
+
+    checkOnce();
+    checkTimer = setInterval(checkOnce, intervalMs);
+
+    function updateNextCheck() {
+      const next = new Date(Date.now() + intervalMs);
+      document.getElementById('status-detail').textContent =
+        `次回チェック: ${next.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    updateNextCheck();
+    checkTimer._updateInterval = setInterval(updateNextCheck, intervalMs);
   }
 
-  function resetResult() {
-    setView('hidden');
+  function checkOnce() {
+    checkCount++;
+    appendLog(`空き枠チェック #${checkCount} を実行中...`, 'info');
+    // Simulate async check with random outcome for demo
+    setTimeout(() => {
+      const rand = Math.random();
+      if (rand < 0.15) {
+        appendLog('✓ 空き枠を発見しました！予約手続きを開始します...', 'ok');
+        setTimeout(() => {
+          if (Math.random() < 0.8) {
+            appendLog('✓ 予約が完了しました', 'ok');
+            addResult('success');
+          } else {
+            appendLog('✗ 予約中にエラーが発生しました（競合）', 'err');
+            addResult('fail');
+          }
+        }, 1200);
+      } else if (rand < 0.2) {
+        appendLog('⚠ ネットワークエラー。次回チェック時に再試行します', 'warn');
+      } else {
+        appendLog(`空き枠なし (チェック #${checkCount})`, '');
+      }
+    }, 600 + Math.random() * 800);
   }
 
-  // ── Init ─────────────────────────────────────────
-  updateGenerateBtn();
+  function addResult(type) {
+    const cards = document.getElementById('result-cards');
+    // Remove placeholder
+    const placeholder = cards.querySelector('.result-card.pending');
+    if (placeholder) placeholder.remove();
+
+    const names = document.querySelectorAll('#priority-list .priority-name');
+    const facilityName = names.length ? names[0].textContent : '施設名未設定';
+    const now = new Date().toLocaleString('ja-JP', { hour12: false });
+
+    const card = document.createElement('div');
+    card.className = 'result-card ' + type;
+    if (type === 'success') {
+      card.innerHTML = `<div class="result-icon">✅</div>
+        <div class="result-info">
+          <div class="result-title">予約完了: ${escHtml(facilityName)}</div>
+          <div class="result-meta">${now}</div>
+        </div>`;
+    } else {
+      card.innerHTML = `<div class="result-icon">❌</div>
+        <div class="result-info">
+          <div class="result-title">予約失敗: ${escHtml(facilityName)}</div>
+          <div class="result-meta">${now} — 競合または満員</div>
+        </div>`;
+    }
+    cards.prepend(card);
+
+    // Open results section
+    const resBody = document.getElementById('body-results');
+    if (resBody.classList.contains('collapsed')) toggleSection('results');
+  }
+
+  function stopReserve() {
+    clearInterval(checkTimer);
+    if (checkTimer && checkTimer._updateInterval) clearInterval(checkTimer._updateInterval);
+    checkTimer = null;
+    setStatus('stopped');
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('stop-row').style.display = 'none';
+    document.getElementById('status-detail').textContent = '次回チェック: 未設定';
+    appendLog('自動予約を停止しました', 'warn');
+  }
+
+  /* ── Init ── */
+  (function init() {
+    // Set default date range: today → 30 days later
+    const today = new Date();
+    const later = new Date();
+    later.setDate(today.getDate() + 30);
+    const fmt = d => d.toISOString().slice(0, 10);
+    document.getElementById('date-from').value = fmt(today);
+    document.getElementById('date-to').value   = fmt(later);
+    loadSettings();
+  })();
 </script>
 </body>
 </html>
