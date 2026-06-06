@@ -1,13 +1,49 @@
-daily_output:
+schedule:
+  sessions:
+    - name: morning
+      time: "07:00"
+      description: "朝の投稿準備 — リサーチ分析＋教育系投稿"
+      output:
+        market_insights: 3
+        x_posts:
+          standalone: 3
+          story: 1
+          sales_funnel: 0
+        thread: 1
+        note_outline: 0
+        cta_variations: 0
+
+    - name: afternoon
+      time: "12:00"
+      description: "昼の投稿 — ストーリー＋共感系"
+      output:
+        market_insights: 0
+        x_posts:
+          standalone: 2
+          story: 1
+          sales_funnel: 0
+        thread: 0
+        note_outline: 0
+        cta_variations: 0
+
+    - name: evening
+      time: "19:00"
+      description: "夜の投稿 — 販売導線＋note案＋翌日準備"
+      output:
+        market_insights: 0
+        x_posts:
+          standalone: 1
+          story: 0
+          sales_funnel: 1
+        thread: 0
+        note_outline: 1
+        cta_variations: 3
+
+daily_total:
   market_insights: 3
-  x_posts:
-    standalone: 3
-    story: 1
-    sales_funnel: 1
-  thread: 1
-  note_outline: 1
-  free_note_idea: 1
-  paid_note_improvement: 1
+  x_posts: 9
+  threads: 1
+  note_outlines: 1
   cta_variations: 3
 
 post_rules:
