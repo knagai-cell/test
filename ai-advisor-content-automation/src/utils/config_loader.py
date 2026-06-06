@@ -23,6 +23,7 @@ def load_prompt(prompt_path: str | Path) -> str:
 
 
 def format_prompt(template: str, brand: dict) -> str:
+    x_account = brand.get("x_account", {})
     replacements = {
         "{positioning}": brand.get("positioning", ""),
         "{target_reader}": brand.get("target_reader", ""),
@@ -30,6 +31,8 @@ def format_prompt(template: str, brand: dict) -> str:
         "{avoid_words}": "、".join(brand.get("avoid_words", [])),
         "{strengths}": "\n".join(f"- {s}" for s in brand.get("strengths", [])),
         "{story_elements}": "\n".join(f"- {s}" for s in brand.get("story_elements", [])),
+        "{x_handle}": x_account.get("handle", ""),
+        "{x_name}": x_account.get("name", ""),
     }
     result = template
     for key, value in replacements.items():

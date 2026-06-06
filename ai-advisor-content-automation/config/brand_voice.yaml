@@ -1,3 +1,9 @@
+x_account:
+  handle: "@_raccoon_ai"
+  url: "https://x.com/_raccoon_ai"
+  name: "らくーんAI"
+  bio_concept: "専門卒×営業経験なし→独学AI→AI顧問5社｜AI顧問になりたい人を応援｜noteで実践ノウハウ公開中"
+
 positioning: "専門卒・営業経験なし・非AI企業出身から、独学でAIを学び、現在AI顧問5社を担当している実務型AI顧問"
 target_reader: "個人事業主や会社員で、これからAI顧問・AIコンサルでマネタイズしたい人、独立したい人"
 tone:

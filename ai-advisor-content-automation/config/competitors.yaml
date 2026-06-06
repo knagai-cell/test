@@ -1,22 +1,29 @@
+# 自分のアカウント（リサーチ対象外、過去投稿の反応分析用）
+own_account:
+  handle: "@_raccoon_ai"
+  url: "https://x.com/_raccoon_ai"
+
+# 競合・参考アカウント（X）
 x_accounts:
-  - name: "例：AI副業系アカウント"
-    url: "https://x.com/example1"
-    category: "AI副業"
-    note: "投稿の切り口を参考にする。文章はコピーしない。"
-  - name: "例：AIコンサル系アカウント"
-    url: "https://x.com/example2"
-    category: "AIコンサル"
-    note: "販売導線を研究する。"
+  # ここに実際の競合アカウントを追加してください
+  # - name: "アカウント名"
+  #   url: "https://x.com/xxxxx"
+  #   category: "AI副業 / AIコンサル / Claude Code / 生成AI活用"
+  #   note: "参考にするポイント"
+  []
 
+# 競合・参考noteクリエイター
 note_creators:
-  - name: "例：AI副業noteクリエイター"
-    url: "https://note.com/example1"
-    category: "AI副業・note販売"
-  - name: "例：AIコンサルnoteクリエイター"
-    url: "https://note.com/example2"
-    category: "AIコンサル"
+  # ここに実際の競合noteクリエイターを追加してください
+  # - name: "クリエイター名"
+  #   url: "https://note.com/xxxxx"
+  #   category: "AI副業・note販売"
+  []
 
+# 参考YouTubeチャンネル
 youtube_channels:
-  - name: "例：AI活用チャンネル"
-    url: "https://www.youtube.com/@example1"
-    category: "AI活用・副業"
+  # ここに実際のチャンネルを追加してください
+  # - name: "チャンネル名"
+  #   url: "https://www.youtube.com/@xxxxx"
+  #   category: "AI活用・副業"
+  []
