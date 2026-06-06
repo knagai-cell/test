@@ -33,3 +33,13 @@ class ContentGenerator:
     def generate_quality_check(self, all_content: str) -> str:
         system = self._load_and_format("quality_check.md")
         return call_llm(system, f"# チェック対象のコンテンツ\n\n{all_content}")
+
+    def generate_weekly_strategy(self, insights: str, current_week: str) -> str:
+        system = self._load_and_format("weekly_strategy.md")
+        system = system.replace("{current_week}", current_week)
+        return call_llm(system, f"# 今週の市場インサイト\n\n{insights}")
+
+    def generate_monthly_strategy(self, insights: str, current_month: str) -> str:
+        system = self._load_and_format("monthly_strategy.md")
+        system = system.replace("{current_month}", current_month)
+        return call_llm(system, f"# 今月の市場インサイト\n\n{insights}")

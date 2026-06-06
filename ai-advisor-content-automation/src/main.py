@@ -29,13 +29,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 SESSIONS = {
     "morning": {
-        "label": "朝（7:00）",
-        "description": "リサーチ分析＋教育系投稿",
+        "label": "朝（8:00）",
+        "description": "リサーチ分析＋教育系投稿＋週次月次戦略",
         "x_types": ["問題提起", "手順解説", "失敗回避", "ストーリー"],
         "include_insights": True,
         "include_thread": True,
         "include_note": False,
         "include_cta": False,
+        "include_weekly_strategy": True,
+        "include_monthly_strategy": True,
     },
     "afternoon": {
         "label": "昼（12:00）",
@@ -162,6 +164,24 @@ def _generate_session(session_name: str, research: str, brand: dict) -> dict[str
         print("[5] CTA・販売導線を生成中...")
         cta = gen.generate_sales_cta(insights, x_posts[:500])
         sections["CTA・販売導線"] = cta
+
+    if session.get("include_weekly_strategy"):
+        from datetime import date as _date
+        today = _date.today()
+        week_start = today - __import__("datetime").timedelta(days=today.weekday())
+        week_end = week_start + __import__("datetime").timedelta(days=6)
+        current_week = f"{week_start.isoformat()} 〜 {week_end.isoformat()}"
+        print("[6] 今週の戦略を生成中...")
+        weekly = gen.generate_weekly_strategy(insights, current_week)
+        sections["今週の発信戦略"] = weekly
+
+    if session.get("include_monthly_strategy"):
+        from datetime import date as _date
+        today = _date.today()
+        current_month = f"{today.year}年{today.month}月"
+        print("[7] 今月の戦略を生成中...")
+        monthly = gen.generate_monthly_strategy(insights, current_month)
+        sections["今月の発信・マネタイズ戦略"] = monthly
 
     return sections
 

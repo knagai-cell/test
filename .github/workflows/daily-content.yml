@@ -1,0 +1,35 @@
+name: 毎朝8時コンテンツ自動生成
+
+on:
+  schedule:
+    # JST 08:00 = UTC 23:00 (前日)
+    - cron: '0 23 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: ai-advisor-content-automation
+        run: pip install -r requirements.txt
+
+      - name: Generate daily content
+        working-directory: ai-advisor-content-automation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m src.main --session all
+
+      - name: Commit and push outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ai-advisor-content-automation/outputs/
+          git diff --cached --quiet || git commit -m "📝 $(date +%Y-%m-%d) 日次コンテンツ自動生成"
+          git push
