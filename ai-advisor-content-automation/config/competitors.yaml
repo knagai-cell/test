@@ -5,94 +5,249 @@ own_account:
 
 # 競合・参考アカウント（X）
 x_accounts:
-  # --- AI顧問・AIコンサル系 ---
-  - name: "茶圓将裕（ちゃえん）"
+
+  # =============================================
+  # AI顧問・AIコンサル系
+  # =============================================
+
+  - name: "茶圓将裕（チャエン）"
     handle: "@masahirochaen"
     url: "https://x.com/masahirochaen"
     category: "AI顧問・AIコンサル"
-    followers: "100,000+"
-    note: "AI活用の専門家として幅広く発信。YouTubeとの連携が強い。初心者向け解説と最新AI情報のバランスが参考になる。"
+    followers: "120,000+"
+    note: |
+      株式会社デジライズ代表。AI研修・AIシステム開発を手掛け、上場企業含む50社超・延べ1万人以上に研修提供。
+      AIニュースを毎日最速で発信するスタイルで認知を獲得。YouTube連携が強く、初心者向け解説と最新情報のバランスが参考になる。
+      発信切り口：「今日使えるAIツール」「業務効率化の具体例」を短くまとめるスタイル。
+
+  - name: "木内翔大（SHIFT AI代表）"
+    handle: "@shota7180"
+    url: "https://x.com/shota7180"
+    category: "AI顧問・AIコンサル"
+    followers: "146,000+"
+    note: |
+      株式会社SHIFT AI代表。「日本をAI先進国に」をミッションに、国内最大級AIコミュニティ（2万名超）を運営。
+      GMO等複数の上場企業でAI顧問を務め、書籍累計3.6万部。
+      発信切り口：AI政策・産業トレンドの俯瞰的解説と、個人のAI学習ロードマップの組み合わせ。
+      販売導線：コミュニティ（SHIFT AI）への誘導、書籍、法人研修の三段構え。
+
+  - name: "深津貴之（fladdict）"
+    handle: "@fladdict"
+    url: "https://x.com/fladdict"
+    category: "AI顧問・AIコンサル"
+    followers: "178,000+"
+    note: |
+      THE GUILD代表／note CXO／Stability AI Japanアドバイザー／横須賀市AI戦略アドバイザー。
+      図解を使った生成AIの概念整理が得意で、高品質な無料発信で信頼を獲得するスタイル。
+      発信切り口：AIサービス設計・UX視点の考察。技術と実務の橋渡し役ポジション。
+
+  - name: "野口竜司（AIX partner）"
+    handle: "@noguryu"
+    url: "https://x.com/noguryu"
+    category: "AI顧問・AIコンサル"
+    followers: "30,000+"
+    note: |
+      AIX partner代表。三井住友カードAIイノベーション室長、マイナビエグゼクティブAIアドバイザー等を兼務。
+      元ZOZO NEXT CAIO、元ELYZA CMO。著書「ChatGPT時代の文系AI人材になる」。
+      発信切り口：ビジネス現場でのAI実装事例、文系・非エンジニア向けAI人材育成。
+
+  # =============================================
+  # AI副業・AIマネタイズ系
+  # =============================================
+
+  - name: "あべむつき"
+    handle: "@abe_chatgpt"
+    url: "https://x.com/abe_chatgpt"
+    category: "AI副業・マネタイズ"
+    followers: "SNS合計30万人+"
+    note: |
+      YouTube「あべむつき【ラッキーマイン】」登録者23万人超。「日本No.1 AI副業YouTuber」を自称。
+      note（@belnon）でAI活用法マガジンを月490円で運営。書籍「2ヶ月で月30万円を実現する超初心者でも稼げるAI活用法」はAmazon複数カテゴリ1位。
+      発信切り口：「超初心者でもできる」再現性重視の副業手順。無料動画→有料note→書籍の導線設計が参考になる。
+      note URL: https://note.com/belnon
+
+  - name: "らっこ"
+    handle: "@Xxx_note_xx"
+    url: "https://x.com/Xxx_note_xx"
+    category: "AI副業・マネタイズ"
+    followers: "700,000+"
+    note: |
+      note累計売上2億円超・1日で3,771万円を売上した実績を持つ超人気noteクリエイター。
+      年間インプレッション15億超。欧州在住・FIRE達成。
+      書籍「2億円を売り上げたプロが教える note×AI 最強の副業」（KADOKAWA）は重版3万部超。
+      発信切り口：「海外noteの手法を日本に応用」「AI×noteで収益最大化」の具体的な数字公開スタイル。
+      noteスペシャリストスクールも運営。note URL: https://note.com/xxx_note_xx
+
+  - name: "ヒナキラ"
+    handle: "@hinakira_ai"
+    url: "https://x.com/hinakira_ai"
+    category: "AI副業・マネタイズ"
+    followers: "未確認（要調査）"
+    note: |
+      ChatGPT活用・SNS運用発信者。副業収益年間2,000万円と報告されている。
+      AI×X運用の収益化ノウハウを発信。Brain等のインフォコンテンツ販売も行う。
+      発信切り口：AI運用半自動化の実践ノウハウ、収益数字の公開でエンゲージメントを稼ぐスタイル。
+      ※ハンドルは要確認
+
+  # =============================================
+  # Claude Code・生成AI活用系
+  # =============================================
 
   - name: "からあげ"
     handle: "@karaage0703"
     url: "https://x.com/karaage0703"
-    category: "AI活用・エンジニア系"
+    category: "Claude Code・生成AI活用"
     followers: "30,000+"
-    note: "生成AI・機械学習の実践的な活用法を発信。技術寄りだが分かりやすい解説が特徴。"
+    note: |
+      生成AI・機械学習の実践的な活用法を発信するエンジニア。
+      Claude Code等のAI開発ツールの実践的な使い方をZennやQiitaと連携して発信。
+      発信切り口：コード付きの実装例と、非エンジニアにも伝わる平易な解説の両立。
 
-  # --- AI副業・AIマネタイズ系 ---
-  # ※以下は検索で見つかった代表的な発信者。ハンドル名は実際に確認してから有効化してください。
-  # - name: "こば｜AI副業"
-  #   handle: "@koba_ai_money"
-  #   url: "https://x.com/koba_ai_money"
-  #   category: "AI副業・マネタイズ"
-  #   note: "AIを使った副業方法を具体的に発信。収益事例の共有が多い。"
+  - name: "今井翔太（えるエル）"
+    handle: "@ImAI_Eruel"
+    url: "https://x.com/ImAI_Eruel"
+    category: "Claude Code・生成AI活用"
+    followers: "50,000+"
+    note: |
+      東京大学松尾研究室出身のAI研究者。強化学習・LLM・生成AIを研究。
+      ChatGPT・Claude等の最新モデルの技術的解説と実務活用を発信。
+      発信切り口：研究者視点の深い技術解説と「実際どう使うか」の実務視点を組み合わせ。
+      書籍・YouTube出演多数。
 
-  # - name: "けいすけ｜AI×副業"
-  #   handle: "@keisuke_ai"
-  #   url: "https://x.com/keisuke_ai"
-  #   category: "AI副業"
-  #   note: "ChatGPTやClaudeを使った副業ノウハウ。実践的な手順解説が多い。"
-
-  # --- Claude Code・生成AI活用系 ---
   - name: "プロンプトおじさん"
     handle: "@and_and_and_and"
     url: "https://x.com/and_and_and_and"
     category: "Claude Code・生成AI活用"
     followers: "10,000-30,000"
-    note: "プロンプトエンジニアリングとClaude活用の実践的な発信。技術的な深さと実用性のバランスが良い。"
+    note: |
+      プロンプトエンジニアリングとClaude活用の実践的な発信。
+      技術的な深さと実用性のバランスが良く、Claude Codeの実務活用ノウハウを積極公開。
+      発信切り口：「使えるプロンプト」の即実践系コンテンツ。
+
+  - name: "新居祐介"
+    handle: "@yusuke77"
+    url: "https://x.com/yusuke77"
+    category: "Claude Code・生成AI活用"
+    followers: "未確認（要調査）"
+    note: |
+      note「非エンジニアの僕がClaude CodeでXを自動運用している話」が注目を集めた発信者。
+      非エンジニア視点でClaude Codeの実務活用を発信。
+      発信切り口：プログラミング不要でAIエージェントを使う「普通の人」目線のノウハウ。
+      note URL: https://note.com/yusuke77
+
+  # =============================================
+  # AI×独立・フリーランス系
+  # =============================================
+
+  - name: "松本勇気（LayerX CTO）"
+    handle: "@y_matsuwitter"
+    url: "https://x.com/y_matsuwitter"
+    category: "AI×独立・フリーランス（テック系）"
+    followers: "50,000+"
+    note: |
+      LayerX CTO。生成AI活用の企業実装のリアルな知見を発信。
+      著書「生成AI『戦力化』の教科書」（日経BP）。
+      発信切り口：エンジニア・CTO視点のAI戦力化・組織導入事例。
+      独立・フリーランス直接発信ではないが、AI×キャリアの参考軸として有用。
 
   - name: "AIダイジェスト"
     handle: "@ai_database"
     url: "https://x.com/ai_database"
-    category: "AIニュース・ツール紹介"
+    category: "AIニュース・情報発信"
     followers: "50,000+"
-    note: "最新AIニュースやツール情報を日本語でまとめている。トレンド把握に有用。"
+    note: |
+      最新AIニュースやツール情報を日本語でまとめている情報発信アカウント。
+      トレンド把握に有用。独立・フリーランス系ではないが、AI情報キュレーションの発信モデルとして参考になる。
 
-  # --- AI×独立・フリーランス系 ---
-  # ※このカテゴリは参入者が少なく差別化チャンス。以下は候補。ハンドル名は要確認。
-  # - name: "やまもと｜AI独立"
-  #   handle: "@yamamoto_ai"
-  #   url: "https://x.com/yamamoto_ai"
-  #   category: "AI×独立・フリーランス"
-  #   note: "AIスキルでの独立体験を発信。フリーランスとしてのリアルな収益や働き方が参考になる。"
-
+# =============================================
 # 競合・参考noteクリエイター
+# =============================================
 note_creators:
+
   - name: "深津貴之（fladdict）"
     url: "https://note.com/fladdict"
+    x_handle: "@fladdict"
     category: "AI活用・プロンプトエンジニアリング"
-    note: "note CXO。AI活用の知見を発信。高品質な無料記事で信頼を獲得する手法が参考になる。"
+    note: |
+      note CXO。無料記事で高品質な知見を公開し、信頼を積み上げるスタイル。
+      AIサービス設計・プロンプト設計・UXの考察記事が豊富。
+      参考ポイント：有料化せず無料記事で権威性を確立→法人顧問・登壇の受注につなげる導線。
+
+  - name: "あべむつき"
+    url: "https://note.com/belnon"
+    x_handle: "@abe_chatgpt"
+    category: "AI副業・マネタイズ"
+    note: |
+      月490円の有料マガジン「あべむつきのAI活用法マガジン」を運営。
+      YouTubeからnoteへの導線設計が巧み。創刊号無料で初動2.4時間で1,200人加入という実績あり。
+      参考ポイント：動画（無料）→note（月額）→書籍（完全版）という三段階マネタイズ構造。
+
+  - name: "らっこ"
+    url: "https://note.com/xxx_note_xx"
+    x_handle: "@Xxx_note_xx"
+    category: "AI副業・noteマネタイズ"
+    note: |
+      note累計2億円超の実績を持つ最大手クリエイター。AI活用でnoteを量産・最適化するノウハウを販売。
+      参考ポイント：タイトル設計、SEO、AI補助ライティングによる記事量産体制。数字公開で強力な社会的証明を形成。
 
   - name: "梶谷健人"
     url: "https://note.com/kajiken"
+    x_handle: "@kajikent"
     category: "AI活用・ビジネス"
-    note: "AIのビジネス活用について深い考察。有料noteの構成と価格設計が参考になる。"
+    note: |
+      AIのビジネス活用について深い考察記事を発信。有料noteの構成と価格設計が参考になる。
+      テクノロジー×ビジネス視点での考察スタイル。
 
   - name: "ChatGPT研究所"
     url: "https://note.com/chatgpt_nobdata"
     category: "ChatGPT活用・プロンプト"
-    note: "ChatGPTの実践的な活用法を有料noteで販売。体系的なコンテンツ構成が参考になる。"
+    note: |
+      ChatGPTの実践的な活用法を有料noteで販売。プロンプト集・業務効率化テンプレが人気。
+      参考ポイント：体系的なコンテンツ構成と、有料マガジン形式での継続収益モデル。
 
-  # ※以下は検索で見つかった候補。URLは要確認。
-  # - name: "AI副業ラボ"
-  #   url: "https://note.com/ai_fukugyo_lab"
-  #   category: "AI副業・マネタイズ"
-  #   note: "AI副業の始め方やマネタイズ方法を販売。無料→有料の導線設計が参考になる。"
+  - name: "高梨洋平"
+    url: "https://note.com/takanashi_ai"
+    category: "生成AI・ツール解説"
+    note: |
+      「生成AIランキング（Tier表）」シリーズが定期的に人気を集める。
+      参考ポイント：定期更新コンテンツ（ランキング・比較）でリピーターを獲得するモデル。
 
+  - name: "AI FREAK"
+    url: "https://note.com/ai_freak"
+    category: "AI副業・AIツール紹介"
+    note: |
+      最新AIツール紹介とAI副業・マネタイズ方法を発信するnoteアカウント。
+      参考ポイント：ツール紹介をフックにしてAI副業コンテンツへ誘導する導線設計。
+
+# =============================================
 # 参考YouTubeチャンネル
+# =============================================
 youtube_channels:
-  - name: "茶圓将裕のAIチャンネル"
+
+  - name: "チャエン / デジライズ"
     url: "https://www.youtube.com/@chaen_ai"
     category: "AI活用・最新情報"
-    note: "AI最新情報と活用法を動画で解説。X発信との連携方法が参考になる。"
+    note: |
+      AI最新情報と活用法を動画で解説。X発信との連携方法が参考になる。
+      毎日投稿スタイルで検索流入を稼ぎ、Xと双方向に集客。
+
+  - name: "あべむつき【ラッキーマイン】"
+    url: "https://www.youtube.com/@lucky_mine_ai"
+    category: "AI副業・マネタイズ"
+    subscribers: "230,000+"
+    note: |
+      AI副業分野のYouTube最大手の一角。「超初心者でも稼げる」ポジションで認知を獲得。
+      YouTube→note→書籍という三段階マネタイズの最成功モデル。
 
   - name: "マナブ"
     url: "https://www.youtube.com/@manabuch"
     category: "副業・独立・AI活用"
-    note: "副業・独立の文脈でAI活用を発信。ストーリー型の発信スタイルが参考になる。"
+    note: |
+      副業・独立の文脈でAI活用を発信。ストーリー型の発信スタイル（自分の経験を赤裸々に）が参考になる。
+      長期的なブランディングと信頼構築の手本として有用。
 
   - name: "mikimiki web school"
     url: "https://www.youtube.com/@mikimikiweb"
     category: "AI活用・初心者向け"
-    note: "ChatGPTやAIツールの使い方を初心者向けに解説。わかりやすい説明スタイルが参考になる。"
+    note: |
+      ChatGPTやAIツールの使い方を初心者向けに解説。分かりやすい画面解説スタイルが参考になる。
