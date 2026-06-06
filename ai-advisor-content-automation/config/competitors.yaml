@@ -1,0 +1,22 @@
+x_accounts:
+  - name: "例：AI副業系アカウント"
+    url: "https://x.com/example1"
+    category: "AI副業"
+    note: "投稿の切り口を参考にする。文章はコピーしない。"
+  - name: "例：AIコンサル系アカウント"
+    url: "https://x.com/example2"
+    category: "AIコンサル"
+    note: "販売導線を研究する。"
+
+note_creators:
+  - name: "例：AI副業noteクリエイター"
+    url: "https://note.com/example1"
+    category: "AI副業・note販売"
+  - name: "例：AIコンサルnoteクリエイター"
+    url: "https://note.com/example2"
+    category: "AIコンサル"
+
+youtube_channels:
+  - name: "例：AI活用チャンネル"
+    url: "https://www.youtube.com/@example1"
+    category: "AI活用・副業"

@@ -1,0 +1,22 @@
+daily_output:
+  market_insights: 3
+  x_posts:
+    standalone: 3
+    story: 1
+    sales_funnel: 1
+  thread: 1
+  note_outline: 1
+  free_note_idea: 1
+  paid_note_improvement: 1
+  cta_variations: 3
+
+post_rules:
+  min_length: 140
+  max_length: 280
+  thread_posts: 5
+
+quality_rules:
+  must_include_experience: true
+  must_have_cta: true
+  no_banned_words: true
+  education_to_sales_ratio: "4:1"
