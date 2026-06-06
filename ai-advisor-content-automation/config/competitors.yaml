@@ -5,25 +5,94 @@ own_account:
 
 # 競合・参考アカウント（X）
 x_accounts:
-  # ここに実際の競合アカウントを追加してください
-  # - name: "アカウント名"
-  #   url: "https://x.com/xxxxx"
-  #   category: "AI副業 / AIコンサル / Claude Code / 生成AI活用"
-  #   note: "参考にするポイント"
-  []
+  # --- AI顧問・AIコンサル系 ---
+  - name: "茶圓将裕（ちゃえん）"
+    handle: "@masahirochaen"
+    url: "https://x.com/masahirochaen"
+    category: "AI顧問・AIコンサル"
+    followers: "100,000+"
+    note: "AI活用の専門家として幅広く発信。YouTubeとの連携が強い。初心者向け解説と最新AI情報のバランスが参考になる。"
+
+  - name: "からあげ"
+    handle: "@karaage0703"
+    url: "https://x.com/karaage0703"
+    category: "AI活用・エンジニア系"
+    followers: "30,000+"
+    note: "生成AI・機械学習の実践的な活用法を発信。技術寄りだが分かりやすい解説が特徴。"
+
+  # --- AI副業・AIマネタイズ系 ---
+  # ※以下は検索で見つかった代表的な発信者。ハンドル名は実際に確認してから有効化してください。
+  # - name: "こば｜AI副業"
+  #   handle: "@koba_ai_money"
+  #   url: "https://x.com/koba_ai_money"
+  #   category: "AI副業・マネタイズ"
+  #   note: "AIを使った副業方法を具体的に発信。収益事例の共有が多い。"
+
+  # - name: "けいすけ｜AI×副業"
+  #   handle: "@keisuke_ai"
+  #   url: "https://x.com/keisuke_ai"
+  #   category: "AI副業"
+  #   note: "ChatGPTやClaudeを使った副業ノウハウ。実践的な手順解説が多い。"
+
+  # --- Claude Code・生成AI活用系 ---
+  - name: "プロンプトおじさん"
+    handle: "@and_and_and_and"
+    url: "https://x.com/and_and_and_and"
+    category: "Claude Code・生成AI活用"
+    followers: "10,000-30,000"
+    note: "プロンプトエンジニアリングとClaude活用の実践的な発信。技術的な深さと実用性のバランスが良い。"
+
+  - name: "AIダイジェスト"
+    handle: "@ai_database"
+    url: "https://x.com/ai_database"
+    category: "AIニュース・ツール紹介"
+    followers: "50,000+"
+    note: "最新AIニュースやツール情報を日本語でまとめている。トレンド把握に有用。"
+
+  # --- AI×独立・フリーランス系 ---
+  # ※このカテゴリは参入者が少なく差別化チャンス。以下は候補。ハンドル名は要確認。
+  # - name: "やまもと｜AI独立"
+  #   handle: "@yamamoto_ai"
+  #   url: "https://x.com/yamamoto_ai"
+  #   category: "AI×独立・フリーランス"
+  #   note: "AIスキルでの独立体験を発信。フリーランスとしてのリアルな収益や働き方が参考になる。"
 
 # 競合・参考noteクリエイター
 note_creators:
-  # ここに実際の競合noteクリエイターを追加してください
-  # - name: "クリエイター名"
-  #   url: "https://note.com/xxxxx"
-  #   category: "AI副業・note販売"
-  []
+  - name: "深津貴之（fladdict）"
+    url: "https://note.com/fladdict"
+    category: "AI活用・プロンプトエンジニアリング"
+    note: "note CXO。AI活用の知見を発信。高品質な無料記事で信頼を獲得する手法が参考になる。"
+
+  - name: "梶谷健人"
+    url: "https://note.com/kajiken"
+    category: "AI活用・ビジネス"
+    note: "AIのビジネス活用について深い考察。有料noteの構成と価格設計が参考になる。"
+
+  - name: "ChatGPT研究所"
+    url: "https://note.com/chatgpt_nobdata"
+    category: "ChatGPT活用・プロンプト"
+    note: "ChatGPTの実践的な活用法を有料noteで販売。体系的なコンテンツ構成が参考になる。"
+
+  # ※以下は検索で見つかった候補。URLは要確認。
+  # - name: "AI副業ラボ"
+  #   url: "https://note.com/ai_fukugyo_lab"
+  #   category: "AI副業・マネタイズ"
+  #   note: "AI副業の始め方やマネタイズ方法を販売。無料→有料の導線設計が参考になる。"
 
 # 参考YouTubeチャンネル
 youtube_channels:
-  # ここに実際のチャンネルを追加してください
-  # - name: "チャンネル名"
-  #   url: "https://www.youtube.com/@xxxxx"
-  #   category: "AI活用・副業"
-  []
+  - name: "茶圓将裕のAIチャンネル"
+    url: "https://www.youtube.com/@chaen_ai"
+    category: "AI活用・最新情報"
+    note: "AI最新情報と活用法を動画で解説。X発信との連携方法が参考になる。"
+
+  - name: "マナブ"
+    url: "https://www.youtube.com/@manabuch"
+    category: "副業・独立・AI活用"
+    note: "副業・独立の文脈でAI活用を発信。ストーリー型の発信スタイルが参考になる。"
+
+  - name: "mikimiki web school"
+    url: "https://www.youtube.com/@mikimikiweb"
+    category: "AI活用・初心者向け"
+    note: "ChatGPTやAIツールの使い方を初心者向けに解説。わかりやすい説明スタイルが参考になる。"
