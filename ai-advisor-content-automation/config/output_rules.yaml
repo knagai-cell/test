@@ -48,8 +48,10 @@ daily_total:
 
 post_rules:
   min_length: 140
-  max_length: 280
+  max_length: 2000
+  ideal_length: "300〜600文字（読みやすく、かつ情報量がある長さ）"
   thread_posts: 5
+  note: "X Premium課金済みのため長文投稿可能"
 
 quality_rules:
   must_include_experience: true
