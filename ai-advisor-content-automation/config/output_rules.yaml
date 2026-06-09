@@ -1,7 +1,7 @@
 schedule:
   sessions:
     - name: morning
-      time: "08:00"
+      time: "07:00"
       description: "朝の投稿準備 — リサーチ分析＋教育系投稿"
       output:
         market_insights: 3
