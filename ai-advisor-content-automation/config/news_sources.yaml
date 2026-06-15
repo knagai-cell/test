@@ -1,0 +1,92 @@
+# ニュースリサーチ優先設定
+# @masahirochaen（チャエン｜デジライズCEO）のカバー領域を参考に構成
+
+primary_reference:
+  account: "@masahirochaen"
+  name: "チャエン｜デジライズCEO"
+  style_notes: |
+    - 重要AIニュースを毎日最速で発信
+    - 初心者にもわかりやすい解説
+    - 「今日使えるAI」「業務効率化の具体例」を短くまとめるスタイル
+    - ツール紹介 → 実務活用 → ビジネスインパクトの流れ
+
+# リサーチ優先トピック（チャエンさんがよくカバーするジャンル順）
+priority_topics:
+  tier1_must_check:
+    - label: "OpenAI / ChatGPT"
+      keywords: ["OpenAI", "ChatGPT", "GPT", "Codex", "DALL-E", "Sora"]
+      reason: "最も注目度が高く、初心者にも馴染みがある"
+
+    - label: "Google / Gemini"
+      keywords: ["Google", "Gemini", "Google I/O", "DeepMind", "Bard", "NotebookLM"]
+      reason: "Googleの動きは企業AI導入に直結、チャエンさんもGeminiアドバイザー"
+
+    - label: "Anthropic / Claude"
+      keywords: ["Anthropic", "Claude", "Claude Code", "Fable", "Mythos"]
+      reason: "自分たちのシステムもClaude活用、差別化ポイント"
+
+    - label: "AIエージェント・自動化"
+      keywords: ["AIエージェント", "AI agent", "自動化", "ワークフロー", "MCP"]
+      reason: "2026年最大トレンド、AI顧問の実務に直結"
+
+  tier2_high_priority:
+    - label: "Microsoft / Copilot"
+      keywords: ["Microsoft", "Copilot", "Azure", "Office AI", "GitHub Copilot"]
+      reason: "企業ユーザーに最も身近なAI、顧問提案で使いやすい"
+
+    - label: "AIツール新リリース"
+      keywords: ["新機能", "リリース", "アップデート", "ローンチ", "新ツール"]
+      reason: "チャエンさんの定番トピック、フォロワーの関心が高い"
+
+    - label: "企業AI活用事例"
+      keywords: ["導入事例", "活用事例", "業務効率化", "コスト削減", "DX"]
+      reason: "AI顧問目線で「こう提案できる」に繋がる"
+
+    - label: "AI × 副業・マネタイズ"
+      keywords: ["AI副業", "マネタイズ", "収益化", "フリーランス", "AI顧問"]
+      reason: "ターゲット層の最大関心事"
+
+  tier3_weekly_check:
+    - label: "AI規制・政策"
+      keywords: ["AI規制", "法律", "ガイドライン", "EU AI Act", "AI安全性"]
+      reason: "週1回程度でOK、大きな動きがあれば即取り上げ"
+
+    - label: "AI半導体・インフラ"
+      keywords: ["NVIDIA", "GPU", "データセンター", "半導体", "TPU"]
+      reason: "株式・投資系フォロワーへの訴求力あり"
+
+    - label: "画像・動画生成AI"
+      keywords: ["Midjourney", "Stable Diffusion", "動画生成", "画像生成", "Runway"]
+      reason: "ビジュアル系は初心者の関心が高い"
+
+    - label: "音声・音楽AI"
+      keywords: ["音声AI", "TTS", "音楽生成", "文字起こし", "Whisper"]
+      reason: "実務活用（議事録等）で紹介しやすい"
+
+# 投稿での取り上げ方（チャエンさんスタイルを参考にしつつ、らくーんAI独自の切り口）
+content_angle:
+  news_format: |
+    チャエンさん: 速報性重視、ビジネスインパクトを端的に伝える
+    らくーんAI: 初心者目線で「これって何がすごいの？」を噛み砕いて解説
+    → チャエンさんのトピック選定を参考にしつつ、説明の深さで差別化
+
+  differentiation:
+    - "チャエンさんが取り上げたトピック → 初心者向けにさらにわかりやすく解説"
+    - "AI顧問の実務目線で「このニュースはクライアントにこう提案できる」を追加"
+    - "「自分はこう使ってみた」という実体験エピソードを必ず添える"
+    - "感情（驚き・ワクワク・不安）を正直に共有して人間味を出す"
+
+# リサーチ検索クエリテンプレート（自動生成時に使用）
+search_queries:
+  daily:
+    - "AI ニュース 今日 {date}"
+    - "OpenAI 最新 {year}年{month}月"
+    - "Google Gemini 最新 {year}年{month}月"
+    - "Anthropic Claude 最新 {year}年{month}月"
+    - "AIエージェント 最新 {year}年{month}月"
+    - "AI 新ツール リリース {year}年{month}月"
+    - "AI 業務効率化 事例 {year}年"
+  weekly:
+    - "AI 規制 政策 日本 {year}年"
+    - "NVIDIA AI {year}年"
+    - "AI 画像生成 動画生成 最新 {year}年"

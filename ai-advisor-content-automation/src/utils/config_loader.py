@@ -14,6 +14,7 @@ def load_all_configs(config_dir: str | Path) -> dict:
         "competitors": load_yaml(config_dir / "competitors.yaml"),
         "keywords": load_yaml(config_dir / "keywords.yaml"),
         "output_rules": load_yaml(config_dir / "output_rules.yaml"),
+        "news_sources": load_yaml(config_dir / "news_sources.yaml"),
     }
 
 
