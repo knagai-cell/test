@@ -1,0 +1,27 @@
+name: Scrape Chinkan public real estate emails
+on:
+  push:
+    branches: [automation/real-estate-leads-2000-v2]
+    paths:
+      - 'chinkan_scraper/**'
+      - '.github/workflows/scrape-chinkan-public-emails.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - run: python chinkan_scraper/scrape_chinkan.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chinkan-public-real-estate-emails
+          path: chinkan_output/
+          if-no-files-found: error
+          retention-days: 7
