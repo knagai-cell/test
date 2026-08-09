@@ -1,0 +1,37 @@
+name: Recover missing public real estate emails
+
+on:
+  push:
+    branches:
+      - automation/real-estate-leads-2000-v2
+    paths:
+      - 'recovery_scraper/**'
+      - '.github/workflows/recover-missing-zennichi-emails.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Recover public emails
+        run: python recovery_scraper/recover_missing_emails.py
+      - name: Upload recovery output
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovered-public-real-estate-emails
+          path: recovery_output/
+          if-no-files-found: error
+          retention-days: 7
