@@ -1,0 +1,19 @@
+name: Test Zennichi fetch
+on:
+  push:
+    branches: [automation/real-estate-leads-2000-v2]
+    paths:
+      - 'recovery_scraper/test_fetch.py'
+      - '.github/workflows/test-zennichi-fetch.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install requests
+      - run: python recovery_scraper/test_fetch.py
