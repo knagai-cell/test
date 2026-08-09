@@ -1,0 +1,49 @@
+name: Scan contact forms for 2,000 public company sites
+
+on:
+  push:
+    branches:
+      - automation/contact-form-scan-2000
+    paths:
+      - 'scripts/scan_contact_forms.py'
+      - 'data/contact_input_part_*.txt'
+      - '.github/workflows/contact-form-scan.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install aiohttp beautifulsoup4
+      - name: Restore input CSV
+        run: |
+          mkdir -p data output
+          cat data/contact_input_part_*.txt | base64 -d | gzip -d > data/contact_form_scan_input.csv
+          echo "rows=$(($(wc -l < data/contact_form_scan_input.csv)-1))"
+      - name: Scan official sites
+        run: python scripts/scan_contact_forms.py data/contact_form_scan_input.csv output/contact_form_scan_results.csv
+      - name: Commit scan results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add output/contact_form_scan_results.csv
+          if git diff --cached --quiet; then
+            echo "No result changes"
+          else
+            git commit -m "Add contact form scan results for 2,000 leads"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contact-form-scan-results
+          path: output/contact_form_scan_results.csv
+          retention-days: 7
