@@ -1,0 +1,37 @@
+name: Scrape public real estate directory leads
+
+on:
+  push:
+    branches:
+      - automation/real-estate-leads-2000-v2
+    paths:
+      - 'lead_scraper/**'
+      - '.github/workflows/scrape-zennichi-leads.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Scrape public directory
+        run: python lead_scraper/scrape_zennichi.py
+      - name: Upload research output
+        uses: actions/upload-artifact@v4
+        with:
+          name: zennichi-public-leads
+          path: output/
+          if-no-files-found: error
+          retention-days: 7
