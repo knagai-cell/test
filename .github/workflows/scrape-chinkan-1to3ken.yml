@@ -1,0 +1,32 @@
+name: Scrape Chinkan public leads for one-to-three prefectures
+
+on:
+  push:
+    branches:
+      - automation/chinkan-1to3ken-expand
+    paths:
+      - 'scripts/scrape_chinkan_1to3ken.py'
+      - '.github/workflows/scrape-chinkan-1to3ken.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install aiohttp beautifulsoup4
+      - name: Scrape public member directory
+        run: python scripts/scrape_chinkan_1to3ken.py output/chinkan_1to3ken
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chinkan-1to3ken-public-email-leads
+          path: output/chinkan_1to3ken
+          retention-days: 7
